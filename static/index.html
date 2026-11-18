@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Captura</title>
+<style>
+  :root { --bg: #0b1020; --card: #111c30; --ink: #fff; --muted: #9aa6c0; --teal: #1de3c2; --blue: #3d5afe; --red: #f03e5e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { margin: 0 0 4px; font-size: 28px; }
+  p.sub { margin: 0 0 24px; color: var(--muted); }
+  textarea, input { width: 100%; background: var(--card); color: var(--ink); border: 1px solid #26324d; border-radius: 10px; padding: 12px; font: inherit; }
+  textarea { min-height: 110px; resize: vertical; }
+  .row { display: flex; gap: 8px; margin-top: 10px; }
+  button { flex: 1; border: 0; border-radius: 10px; padding: 12px; font: inherit; font-weight: 600; cursor: pointer; background: var(--blue); color: #fff; }
+  button.voz { flex: 0 0 auto; background: var(--card); border: 1px solid #26324d; }
+  button.voz.on { background: var(--red); }
+  button:disabled { opacity: .5; cursor: wait; }
+  .msg { margin-top: 14px; min-height: 24px; color: var(--muted); }
+  .msg.erro { color: var(--red); }
+  .tag { display: inline-block; background: var(--teal); color: var(--bg); font-weight: 700; border-radius: 999px; padding: 2px 10px; margin-right: 6px; }
+  section { margin-top: 28px; }
+  h2 { font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); margin: 0 0 8px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { background: var(--card); border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; }
+  li small { color: var(--muted); display: block; }
+  details { margin-bottom: 18px; color: var(--muted); }
+  details input { margin-top: 8px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Captura</h1>
+  <p class="sub">Despeja o que tens na cabeça. Vai parar ao sítio certo.</p>
+
+  <details id="chave-box">
+    <summary>A tua chave</summary>
+    <input id="chave" type="password" placeholder="cola aqui a chave que o formador te deu" autocomplete="off">
+  </details>
+
+  <textarea id="texto" placeholder="ex.: lembra-me de devolver o carregador ao João"></textarea>
+  <div class="row">
+    <button id="voz" class="voz" type="button" title="Ditar (Chrome, Edge, Safari)">🎤 Falar</button>
+    <button id="enviar" type="button">Classificar</button>
+  </div>
+  <div id="msg" class="msg"></div>
+
+  <section>
+    <h2>Nesta sessão</h2>
+    <ul id="lista"></ul>
+  </section>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const guardar = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  const ler = (k) => { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } };
+
+  $("chave").value = ler("captura-chave");
+  if (!$("chave").value) $("chave-box").open = true;
+  $("chave").addEventListener("change", () => guardar("captura-chave", $("chave").value.trim()));
+
+  async function enviar() {
+    const texto = $("texto").value.trim();
+    if (!texto) return;
+    $("enviar").disabled = true;
+    $("msg").className = "msg";
+    $("msg").textContent = "A classificar…";
+    try {
+      const r = await fetch("/classificar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + $("chave").value.trim() },
+        body: JSON.stringify({ texto, origem: "web" }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || r.statusText);
+      const cats = d.categorias.length ? d.categorias : ["sem categoria"];
+      $("msg").innerHTML = cats.map((c) => `<span class="tag">${c}</span>`).join("") +
+        `<small> ${d.segundos}s · ${d.tokens_prompt + d.tokens_resposta} tokens</small>`;
+      const li = document.createElement("li");
+      li.innerHTML = `${cats.map((c) => `<span class="tag">${c}</span>`).join("")}<small></small>`;
+      li.querySelector("small").textContent = texto;
+      $("lista").prepend(li);
+      $("texto").value = "";
+    } catch (e) {
+      $("msg").className = "msg erro";
+      $("msg").textContent = e.message;
+    } finally {
+      $("enviar").disabled = false;
+    }
+  }
+  $("enviar").addEventListener("click", enviar);
+  $("texto").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) enviar(); });
+
+  // Voz: o browser transcreve (Web Speech API). Sem servidor, sem custo; não funciona no Firefox.
+  const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Rec) { $("voz").disabled = true; $("voz").title = "Este browser não suporta ditado"; }
+  let rec = null;
+  $("voz").addEventListener("click", () => {
+    if (rec) { rec.stop(); return; }
+    rec = new Rec();
+    rec.lang = "pt-PT";
+    rec.interimResults = true;
+    const antes = $("texto").value;
+    rec.onresult = (e) => {
+      $("texto").value = (antes ? antes + " " : "") + Array.from(e.results).map((r) => r[0].transcript).join("");
+    };
+    rec.onend = () => { rec = null; $("voz").classList.remove("on"); $("voz").textContent = "🎤 Falar"; };
+    rec.onerror = (e) => { $("msg").className = "msg erro"; $("msg").textContent = "Ditado: " + e.error; };
+    rec.start();
+    $("voz").classList.add("on");
+    $("voz").textContent = "■ Parar";
+  });
+</script>
+</body>
+</html>
