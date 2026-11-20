@@ -2,6 +2,7 @@
 
 Este diretório contém uma aplicação FastAPI que recebe uma nota, chama o classificador NVIDIA e apresenta a categoria prevista. Inclui envio opcional de eventos técnicos para Grafana Cloud Loki.
 
+
 ## Segurança do pacote
 
 Este pacote não inclui chaves, tokens, ficheiros `.env`, credenciais Vercel, diretórios `.vercel` ou ambientes virtuais. Antes de o partilhar, confirma o conteúdo com:
