@@ -175,10 +175,6 @@ def classificar_texto(texto: str, request_id: str, origem: str) -> str:
 
 @app.post('/api/classificar')
 def classificar(nota: Nota, request: Request):
-    # Experiência temporária: categoria fora da lista, sem tratamento de erro.
-    if nota.texto.strip() == "TESTE OBSERVABILIDADE E":
-        resposta = "E"
-        return {"categoria": CATEGORIES[CATEGORIES.index(resposta)]}
     try:
         return {'categoria': classificar_texto(nota.texto, request.state.request_id, origem='http')}
     except ErroClassificacao as exc:
