@@ -2,11 +2,11 @@
 
 ## Estado
 
-Código de acesso e páginas na branch `grupo-5-acessos`; o servidor MCP pertence ao Grupo 4. O Redis real e a integração com o servidor MCP têm de ser configurados e testados antes de anunciar o piloto como funcional.
+Código de acesso e páginas na branch `grupo-5-acessos`; o servidor MCP pertence ao Grupo 4. A base Upstash foi criada e ligada ao projeto Vercel nos ambientes Preview e Production, mas a ligação do código à base real e a integração MCP ainda não foram testadas.
 
 ## Configuração
 
-Configurar `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN` (também são aceites `KV_REST_API_URL` e `KV_REST_API_TOKEN`), `CODIGO_CONVITE` e `MCP_BASE_URL` no ambiente de execução. Não partilhar valores. Criar e associar Redis Upstash à Vercel e fazer novo deployment. O código usa REST e scripts Lua, que devem ser validados no serviço efetivamente escolhido. Para execução local copiar `.env.example` para `.env` e preencher fora do Git.
+O Redis está ligado com `KV_REST_API_URL` e `KV_REST_API_TOKEN`. Falta configurar `CODIGO_CONVITE` e `MCP_BASE_URL` e fazer novo deployment. O código também aceita `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN`. Não partilhar valores. O código usa REST e scripts Lua, ainda por validar com a base real. Para execução local copiar `.env.example` para `.env` e preencher fora do Git.
 
 ## Funções para o Grupo 4
 
@@ -24,7 +24,7 @@ As chaves são armazenadas por hash SHA-256. Nome igual substitui o acesso anter
 
 ## Verificações pendentes
 
-1. Criar e configurar Redis real e convite, testar escrita/leitura e scripts Lua no deployment de teste.
+1. Configurar convite e URL, testar escrita/leitura e scripts Lua no Redis real a partir de um deployment de teste.
 2. Confirmar configuração de Vercel Authentication para acesso do cliente externo; não divulgar bypass.
 3. Integrar servidor Grupo 4 e testar cliente MCP, revogação em sessão, `/uso`, disponibilidade e logs da Vercel/Grafana.
 4. Verificar instruções e planos de cada cliente na versão efetivamente usada. O URL com chave pode ficar em logs e configurações de terceiros; inspecionar e documentar.
