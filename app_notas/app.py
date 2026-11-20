@@ -8,6 +8,7 @@ from urllib.request import Request as HttpRequest, HTTPRedirectHandler, build_op
 import sys
 import time
 import uuid
+import hmac
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -15,6 +16,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from openai import OpenAI, OpenAIError
 from pydantic import BaseModel, Field
+import acesso
 
 ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT / '.env')
@@ -98,6 +100,63 @@ async def observar_pedido(request: Request, call_next):
 
 class Nota(BaseModel):
     texto: str = Field(min_length=1, max_length=4000)
+
+
+class Convite(BaseModel):
+    codigo: str = Field(min_length=1, max_length=200)
+    nome: str = Field(default='', max_length=80)
+
+
+def validar_convite(dados: Convite, request: Request):
+    codigo = os.getenv('CODIGO_CONVITE', '')
+    if not codigo:
+        raise HTTPException(503, 'Convite não configurado.')
+    # Limite global partilhado entre instâncias, sem confiar em cabeçalhos do cliente.
+    try:
+        tentativas = acesso.redis('EVAL', "local n=redis.call('INCR',KEYS[1]); if n==1 then redis.call('EXPIRE',KEYS[1],60) end; return n", 1, 'entrelinhas:convites:limite')
+    except acesso.RedisIndisponivel:
+        raise HTTPException(503, 'Serviço temporariamente indisponível.')
+    if int(tentativas) > 30:
+        raise HTTPException(429, 'Demasiadas tentativas; aguarda um minuto.')
+    if not hmac.compare_digest(codigo.encode(), dados.codigo.encode()):
+        raise HTTPException(403, 'Código inválido.')
+
+
+@app.get('/ligar', include_in_schema=False)
+def pagina_ligar():
+    return FileResponse(ROOT / 'public' / 'ligar.html', headers={'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer'})
+
+
+@app.get('/uso', include_in_schema=False)
+def pagina_uso():
+    return FileResponse(ROOT / 'public' / 'uso.html', headers={'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer'})
+
+
+@app.post('/api/acesso')
+def gerar_acesso(dados: Convite, request: Request):
+    validar_convite(dados, request)
+    base = os.getenv('MCP_BASE_URL', '').rstrip('/')
+    if not base.startswith('https://') or '?' in base or '#' in base:
+        raise HTTPException(503, 'URL MCP não configurado.')
+    try:
+        chave = acesso.criar_chave(dados.nome)
+    except ValueError:
+        raise HTTPException(422, 'Nome inválido.')
+    except acesso.RedisIndisponivel:
+        raise HTTPException(503, 'Serviço temporariamente indisponível.')
+    from fastapi.responses import JSONResponse
+    return JSONResponse({'url': base + '/mcp?key=' + chave}, headers={'Cache-Control': 'no-store'})
+
+
+@app.post('/api/uso')
+def consultar_uso(dados: Convite, request: Request):
+    validar_convite(dados, request)
+    try:
+        eventos = acesso.listar_chamadas()
+    except acesso.RedisIndisponivel:
+        raise HTTPException(503, 'Serviço temporariamente indisponível.')
+    from fastapi.responses import JSONResponse
+    return JSONResponse({'eventos': eventos}, headers={'Cache-Control': 'no-store'})
 
 
 def criar_prompt(texto: str) -> str:
