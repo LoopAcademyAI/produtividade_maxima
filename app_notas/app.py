@@ -16,7 +16,7 @@ from typing import Annotated
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from starlette.datastructures import Headers
 from starlette.concurrency import run_in_threadpool
 from urllib.parse import parse_qs
@@ -144,12 +144,16 @@ def validar_convite(dados: Convite, request: Request):
 
 @app.get('/ligar', include_in_schema=False)
 def pagina_ligar():
-    return FileResponse(ROOT / 'public' / 'ligar.html', headers={'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer'})
+    headers = {'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer'}
+    caminho = ROOT / 'public' / 'ligar.html'
+    return FileResponse(caminho, headers=headers) if caminho.is_file() else RedirectResponse('/ligar.html', status_code=307, headers=headers)
 
 
 @app.get('/uso', include_in_schema=False)
 def pagina_uso():
-    return FileResponse(ROOT / 'public' / 'uso.html', headers={'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer'})
+    headers = {'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer'}
+    caminho = ROOT / 'public' / 'uso.html'
+    return FileResponse(caminho, headers=headers) if caminho.is_file() else RedirectResponse('/uso.html', status_code=307, headers=headers)
 
 
 @app.post('/api/acesso')
