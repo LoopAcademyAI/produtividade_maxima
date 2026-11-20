@@ -1,0 +1,9 @@
+# Integração Grupos 4 e 5
+
+Integração do commit `3945b7370e89e7d74a8195e512de2b550f850734` do Grupo 4 com `grupo-5-acessos`. O servidor MCP usa Streamable HTTP stateless e aceita `?key=` ou cabeçalho Bearer. Cada pedido verifica a chave através de `acesso.verificar_chave`; Redis indisponível dá 503. A tool usa o classificador partilhado e regista classificações bem-sucedidas em `acesso.registar_chamada`, a mesma lista consultada em `/uso`.
+
+Testes: `python -m unittest test_integracao_mcp test_acesso test_paginas_acesso`. A integração testa autenticação, chamada e revogação com Redis e modelo simulados. `test_mcp.py` do Grupo 4 exercita o contrato antigo com `MCP_TESTERS` e XADD e não é compatível com a autenticação integrada. A classificação de teste não chama a NVIDIA.
+
+O código legado `carregar_testers` e `registar_chamada_mcp` não está na via integrada; não configurar `MCP_TESTERS` nem a segunda base para este fluxo. A base usada depende das variáveis efetivas no projeto (`UPSTASH_REDIS_REST_*` tem precedência sobre `KV_REST_API_*`); verificar se não existem ambas a apontar a bases diferentes antes de fazer deploy. Produção e Preview estavam ligados à mesma base Upstash do Grupo 5. Não eliminar a base ou dados do Grupo 4 sem acordo.
+
+Falta configurar `CODIGO_CONVITE` e `MCP_BASE_URL`, validar scripts Lua e chamadas contra Redis real, realizar deploy seguro e testar com um cliente real, bem como teste independente. Um código de convite partilhado permite a outra pessoa usar o mesmo nome e revogar/substituir o acesso, pelo que só se deve usar com dados fictícios num piloto controlado. A chave no URL pode ser registada pela infraestrutura ou clientes; confirmar proteção e logs antes de partilhar URLs. A falha deliberada de demonstração foi removida pelo Grupo 4. As instruções anteriores sobre `MCP_TESTERS` descrevem a versão anterior e não o fluxo integrado.
