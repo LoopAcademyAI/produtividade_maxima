@@ -1,0 +1,103 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_LOKI",
+      "label": "Loki",
+      "type": "datasource",
+      "pluginId": "loki",
+      "pluginName": "Loki"
+    }
+  ],
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Pedidos por minuto",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(count_over_time({service_name=\"entrelinhas\"} | json | event=\"pedido_concluido\" [1m]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Erros por minuto",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(count_over_time({service_name=\"entrelinhas\"} | json | nivel=\"error\" [1m]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "logs",
+      "title": "Eventos da aplicação",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=\"entrelinhas\"} | json",
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          }
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": [
+    "entrelinhas",
+    "logs"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "Entrelinhas — Observabilidade",
+  "version": 1
+}

@@ -1,0 +1,31 @@
+{
+  "DEFINICOES": {
+    "foco": "Prioridade, objetivo ou atenção principal para um período; não é uma ação atómica.",
+    "trabalho": "Contexto profissional: decisões, bugs, projetos, estado e informação da equipa.",
+    "tarefa": "Uma ação concreta a executar, sem compromisso de calendário.",
+    "social": "Pessoas, relações, conversas, grupos e planos sociais sem hora marcada.",
+    "ideia": "Proposta ou possibilidade ainda por validar ou decidir.",
+    "aprendizagem": "Algo compreendido, a estudar, testar, reter ou aplicar como conhecimento.",
+    "agenda": "Compromisso ou evento com data, hora ou intervalo temporal marcado.",
+    "pessoal": "Informação, preferências, rotinas e instruções da vida privada fora das outras categorias.",
+    "outros": "Conteúdo sem intenção ou contexto suficiente para uma classificação mais útil.",
+    "preocupações": "Risco, ansiedade, incerteza ou problema a acompanhar, ainda sem ação decidida."
+  },
+  "PROMPTS": {
+    "P1_original": "Classifica a captura numa ou mais categorias. Responde só com as categorias, separadas por vírgulas.",
+    "P2_dominante": "Classifica a intenção principal da captura. Escolhe exatamente uma categoria, a mais representativa daquilo que a pessoa pretende guardar. Responde apenas com o nome da categoria, sem explicações.",
+    "P3_conservador": "És um classificador de notas em português informal. Identifica o propósito central da nota; menções secundárias a pessoas, datas ou trabalho não bastam para mudar a sua intenção. Seleciona exatamente uma categoria sustentada pelo texto. Se não houver contexto suficiente para uma categoria específica, usa outros. Responde só com a categoria, sem explicações."
+  },
+  "EXAMPLES": {
+    "foco": "A prioridade deste mês é melhorar a qualidade do meu sono.",
+    "trabalho": "O serviço de pagamentos da equipa devolve erro depois do último deploy.",
+    "tarefa": "Levar os livros emprestados à biblioteca.",
+    "social": "O Miguel gosta de combinar caminhadas com os amigos.",
+    "ideia": "Podíamos experimentar uma versão da aplicação para relógios.",
+    "aprendizagem": "Aprendi que a normalização evita diferenças de escala entre variáveis.",
+    "agenda": "Tenho uma visita ao museu marcada para 12 de dezembro às 15h.",
+    "pessoal": "Prefiro o quarto com as cortinas fechadas para dormir.",
+    "outros": "Fragmento solto: uma linha azul num papel.",
+    "preocupações": "Receio que a mudança de casa me deixe sem dinheiro para imprevistos."
+  }
+}
