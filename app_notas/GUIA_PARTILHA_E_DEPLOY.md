@@ -16,12 +16,10 @@ O outro grupo deve criar as **suas próprias** credenciais. Nunca devem receber 
 
 ```bash
 cd app_notas
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+uv sync
 cp .env.example .env
 # editar .env e inserir apenas a NVIDIA_API_KEY do próprio grupo
-uvicorn app:app --reload
+uv run uvicorn app:app --reload
 ```
 
 Abrir `http://127.0.0.1:8000`. Sem `NVIDIA_API_KEY`, a rota de classificação responde com erro controlado, mas `/api/health` continua disponível.
@@ -69,9 +67,8 @@ Testes locais:
 
 ```bash
 cd app_notas
-pip install httpx
-python test_observabilidade.py
-python test_grafana.py
+uv sync
+uv run python run_tests.py
 ```
 
 ## Como servir funcionários em segurança

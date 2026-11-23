@@ -1,27 +1,28 @@
-import json
-import os
-import logging
 import base64
 import hmac
-from contextlib import asynccontextmanager
-from datetime import datetime, timezone
-from urllib.parse import urlparse
-from urllib.request import Request as HttpRequest, HTTPRedirectHandler, build_opener
+import json
+import logging
+import os
 import sys
 import time
 import uuid
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
+from urllib.parse import urlparse
+from urllib.request import HTTPRedirectHandler, build_opener
+from urllib.request import Request as HttpRequest
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
-from starlette.datastructures import Headers
-from openai import OpenAI, OpenAIError
 from mcp.server.mcpserver import Context
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
+from openai import OpenAI, OpenAIError
 from pydantic import BaseModel, Field
+from starlette.datastructures import Headers
 
 from mcp_server import mcp, mcp_app
 
@@ -348,7 +349,7 @@ class Classificacao(BaseModel):
         "Classifica uma nota curta em português numa única categoria: "
         f"{', '.join(CATEGORIES)}. Devolve a categoria dominante."
     ),
-    annotations=ToolAnnotations(readOnlyHint=True, openWorldHint=True),
+    annotations=ToolAnnotations(read_only_hint=True, open_world_hint=True),
 )
 def classificar_nota(
     texto: Annotated[
@@ -361,7 +362,7 @@ def classificar_nota(
 ) -> Classificacao:
     # Função síncrona: o SDK corre-a numa thread, por isso a chamada bloqueante à NVIDIA não trava o servidor.
     # tester e request_id foram postos no pedido pelo servidor (ExigirChave e middleware), não pelo cliente.
-    estado_pedido = ctx.request_context.request.state
+    estado_pedido = getattr(ctx.request_context.request, "state", None)
     tester = getattr(estado_pedido, "tester", None) or "desconhecido"
     request_id = getattr(estado_pedido, "request_id", None) or uuid.uuid4().hex
     try:

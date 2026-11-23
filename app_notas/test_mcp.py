@@ -5,7 +5,9 @@ import json
 import logging
 from types import SimpleNamespace
 from unittest.mock import patch
+
 from fastapi.testclient import TestClient
+
 import app
 
 CHAVE_ANA = "chave-de-teste-da-ana-0123456789"
@@ -101,7 +103,11 @@ def testar_chaves(client, log):
         and client.get("/").status_code == 200
     )
     assert client.get("/xyz").status_code == 404
-    eventos = [json.loads(l) for l in log.getvalue().splitlines() if l.startswith("{")]
+    eventos = [
+        json.loads(linha)
+        for linha in log.getvalue().splitlines()
+        if linha.startswith("{")
+    ]
     motivos = {e["motivo"] for e in eventos if e["event"] == "mcp_acesso_negado"}
     assert motivos == {"sem_chave", "chave_invalida", "testers_por_configurar"}, motivos
     assert all(

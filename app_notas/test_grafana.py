@@ -1,10 +1,11 @@
 import base64
-import io
 import json
 import logging
 from types import SimpleNamespace
 from unittest.mock import patch
+
 from fastapi.testclient import TestClient
+
 import app
 
 
@@ -21,6 +22,7 @@ class Response:
 
 def main():
     env = {
+        "NVIDIA_API_KEY": "chave-de-teste",
         "LOKI_PUSH_URL": "https://logs-test.grafana.net/loki/api/v1/push",
         "LOKI_USER": "123",
         "LOKI_TOKEN": "token-teste",
