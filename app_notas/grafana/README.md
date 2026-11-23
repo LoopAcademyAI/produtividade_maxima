@@ -35,11 +35,10 @@ Para encontrar erros:
 {service_name="entrelinhas"} | json | nivel="error"
 ```
 
-4. Para gerar o erro de demonstração já existente, escrever `TESTE OBSERVABILIDADE E` na aplicação. Deve ocorrer HTTP 500 e surgir `pedido_erro_inesperado` no Grafana. Usar também os logs Vercel para confirmar; se não aparecer no Grafana, procurar `grafana_envio_falhou` ou `grafana_configuracao_invalida` na Vercel.
+4. O gatilho de erro de demonstração (`TESTE OBSERVABILIDADE E`) foi removido a 20/11/2026. O evento `pedido_erro_inesperado` é verificado pelos testes locais. Se os eventos não aparecerem no Grafana, procurar `grafana_envio_falhou` ou `grafana_configuracao_invalida` nos logs da Vercel.
 5. O dashboard já foi importado no stack e confirmado com eventos reais de erro e sucesso.
 
-A URL é validada para evitar envio acidental de credenciais a destinos fora de `*.grafana.net`. Se o teu stack usar domínio personalizado, é necessário adaptar a validação de forma explícita. A Vercel continua a manter os seus próprios logs. O botão de erro de teste continua ativo até o removermos depois da demonstração.
-
+A URL é validada para evitar envio acidental de credenciais a destinos fora de `*.grafana.net`. Se o teu stack usar domínio personalizado, é necessário adaptar a validação de forma explícita. A Vercel continua a manter os seus próprios logs.
 ## Testar o código localmente
 
 ```bash
@@ -56,4 +55,4 @@ Referências: [API de envio Loki](https://grafana.com/docs/loki/latest/reference
 
 ## Partilha com outro grupo
 
-Cada grupo deve criar o seu próprio stack, política `logs:write` e token no Grafana Cloud, e guardá-los como Secrets na sua Vercel. Não reutilizar stacks, URLs de dashboards, tokens ou outras credenciais de outro grupo. O erro `TESTE OBSERVABILIDADE E` permanece ativo apenas para demonstração e deve ser removido antes de disponibilizar a aplicação a utilizadores reais.
+Cada grupo deve criar o seu próprio stack, política `logs:write` e token no Grafana Cloud, e guardá-los como Secrets na sua Vercel. Não reutilizar stacks, URLs de dashboards, tokens ou outras credenciais de outro grupo.
