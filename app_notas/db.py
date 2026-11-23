@@ -2,14 +2,18 @@
 
 Porquê assim: ver BASE_DE_DADOS.md.
 """
+
 import os
 import sqlite3
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
-SQLITE_PATH = Path(os.environ.get('NOTAS_SQLITE', Path(__file__).resolve().parent / 'notas.db'))
+SQLITE_PATH = Path(
+    os.environ.get("NOTAS_SQLITE", Path(__file__).resolve().parent / "notas.db")
+)
 
 ESQUEMA = """
 CREATE TABLE IF NOT EXISTS notas (
@@ -19,34 +23,37 @@ CREATE TABLE IF NOT EXISTS notas (
     categoria TEXT NOT NULL,
     criada_em TEXT NOT NULL
 )"""
-INDICE = 'CREATE INDEX IF NOT EXISTS notas_utilizador ON notas (utilizador, criada_em)'
+INDICE = "CREATE INDEX IF NOT EXISTS notas_utilizador ON notas (utilizador, criada_em)"
 
 
 def url_postgres():
     # A integração Neon do Vercel cria DATABASE_URL (e outras POSTGRES_*); aceitamos as duas.
-    return os.environ.get('DATABASE_URL') or os.environ.get('POSTGRES_URL')
+    return os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
 
 
 @contextmanager
 def ligacao():
     """Uma ligação por pedido: em serverless não há processo que fique vivo entre pedidos."""
     url = url_postgres()
+    conn: Any  # SQLite e psycopg usam tipos de ligação diferentes.
     if url:
         import psycopg
+
         conn = psycopg.connect(url, autocommit=True)
-        marcador = '%s'
+        marcador = "%s"
     else:
         conn = sqlite3.connect(SQLITE_PATH)
         conn.row_factory = sqlite3.Row
-        marcador = '?'
+        marcador = "?"
     try:
         cur = conn.cursor()
         cur.execute(ESQUEMA)
         cur.execute(INDICE)
 
         def sql(query, params=()):
-            cur.execute(query.replace('?', marcador), params)
+            cur.execute(query.replace("?", marcador), params)
             return cur
+
         yield sql
         conn.commit()
     finally:
@@ -54,29 +61,46 @@ def ligacao():
 
 
 def _linha(row):
-    keys = ('id', 'utilizador', 'texto', 'categoria', 'criada_em')
-    return dict(zip(keys, row)) if not isinstance(row, sqlite3.Row) else {k: row[k] for k in keys}
+    keys = ("id", "utilizador", "texto", "categoria", "criada_em")
+    return (
+        dict(zip(keys, row))
+        if not isinstance(row, sqlite3.Row)
+        else {k: row[k] for k in keys}
+    )
 
 
 def criar(utilizador, texto, categoria, criada_em=None, id=None):
-    nota = {'id': id or str(uuid.uuid4()), 'utilizador': utilizador, 'texto': texto, 'categoria': categoria,
-            'criada_em': criada_em or datetime.now(timezone.utc).isoformat()}
+    nota = {
+        "id": id or str(uuid.uuid4()),
+        "utilizador": utilizador,
+        "texto": texto,
+        "categoria": categoria,
+        "criada_em": criada_em or datetime.now(timezone.utc).isoformat(),
+    }
     with ligacao() as sql:
-        sql('INSERT INTO notas (id, utilizador, texto, categoria, criada_em) VALUES (?, ?, ?, ?, ?)',
-            (nota['id'], nota['utilizador'], nota['texto'], nota['categoria'], nota['criada_em']))
+        sql(
+            "INSERT INTO notas (id, utilizador, texto, categoria, criada_em) VALUES (?, ?, ?, ?, ?)",
+            (
+                nota["id"],
+                nota["utilizador"],
+                nota["texto"],
+                nota["categoria"],
+                nota["criada_em"],
+            ),
+        )
     return nota
 
 
 def listar(utilizador, categoria=None, procura=None, limite=200):
-    query = 'SELECT id, utilizador, texto, categoria, criada_em FROM notas WHERE utilizador = ?'
+    query = "SELECT id, utilizador, texto, categoria, criada_em FROM notas WHERE utilizador = ?"
     params = [utilizador]
     if categoria:
-        query += ' AND categoria = ?'
+        query += " AND categoria = ?"
         params.append(categoria)
     if procura:
-        query += ' AND LOWER(texto) LIKE ?'
-        params.append(f'%{procura.lower()}%')
-    query += ' ORDER BY criada_em DESC LIMIT ?'
+        query += " AND LOWER(texto) LIKE ?"
+        params.append(f"%{procura.lower()}%")
+    query += " ORDER BY criada_em DESC LIMIT ?"
     params.append(limite)
     with ligacao() as sql:
         return [_linha(r) for r in sql(query, params).fetchall()]
@@ -84,4 +108,9 @@ def listar(utilizador, categoria=None, procura=None, limite=200):
 
 def apagar(utilizador, id):
     with ligacao() as sql:
-        return sql('DELETE FROM notas WHERE id = ? AND utilizador = ?', (id, utilizador)).rowcount > 0
+        return (
+            sql(
+                "DELETE FROM notas WHERE id = ? AND utilizador = ?", (id, utilizador)
+            ).rowcount
+            > 0
+        )

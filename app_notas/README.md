@@ -20,8 +20,4 @@ Para entregar a aplicação a outro grupo, seguir [GUIA_PARTILHA_E_DEPLOY.md](GU
 
 ## Logs e observabilidade
 
-<<<<<<< HEAD
 A experiência de falha, os testes e as instruções para consultar logs estão em [OBSERVABILIDADE.md](OBSERVABILIDADE.md). Para executar os testes locais: `uv sync` e `uv run python run_tests.py`.
-=======
-A experiência de falha, os testes e as instruções para consultar logs estão em [OBSERVABILIDADE.md](OBSERVABILIDADE.md). Para executar os testes locais: `pip install httpx`, `python test_observabilidade.py` e `python test_notas.py`.
->>>>>>> origin/main
