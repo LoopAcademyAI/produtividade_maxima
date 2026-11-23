@@ -175,19 +175,6 @@ def criar_instrucoes_sistema() -> str:
         'explicações, prefixos, listas ou texto adicional.'
     )
 
-
-@app.get('/', include_in_schema=False)
-    definicoes = "\n".join(f"- {c}: {CONFIG['DEFINICOES'][c]}" for c in CATEGORIES)
-    exemplos = "\n".join(
-        f"Captura: {CONFIG['EXAMPLES'][c]}\nCategorias: {c}" for c in CATEGORIES
-    )
-    return (
-        f"Categorias possíveis: {', '.join(CATEGORIES)}.\n"
-        f"{CONFIG['PROMPTS']['P2_dominante']}\n\n"
-        f"Definições:\n{definicoes}\n\nExemplos:\n{exemplos}\n\nCaptura: {texto}"
-    )
-
-
 @app.get("/", include_in_schema=False)
 def pagina():
     return FileResponse(ROOT / "public" / "index.html")
@@ -224,16 +211,6 @@ def classificar_texto(texto: str, request_id: str, origem: str) -> str:
         )
         raise ErroClassificacao(503, "A chave NVIDIA não está configurada no servidor.")
     try:
-        cliente = OpenAI(base_url='https://integrate.api.nvidia.com/v1', api_key=key, timeout=30, max_retries=1)
-        resposta = cliente.chat.completions.create(model=MODEL, messages=[
-                    {'role': 'system', 'content': criar_instrucoes_sistema()},
-                    {'role': 'user', 'content': criar_prompt(texto)}],
-                    temperature=0, max_tokens=512, extra_body={'chat_template_kwargs': {'enable_thinking': False}})
-    except OpenAIError as exc:
-        log_event(logging.ERROR, 'modelo_indisponivel', request_id=request_id, origem=origem, modelo=MODEL,
-                  tipo_erro=type(exc).__name__, duracao_ms=round((time.perf_counter()-started)*1000))
-        raise HTTPException(status_code=502, detail='Não foi possível classificar a nota. Tenta novamente.') from exc
-    conteudo = (resposta.choices[0].message.content or '').strip().lower()
         cliente = OpenAI(
             base_url="https://integrate.api.nvidia.com/v1",
             api_key=key,
@@ -242,7 +219,10 @@ def classificar_texto(texto: str, request_id: str, origem: str) -> str:
         )
         resposta = cliente.chat.completions.create(
             model=MODEL,
-            messages=[{"role": "user", "content": criar_prompt(texto)}],
+            messages=[
+                {"role": "system", "content": criar_instrucoes_sistema()},
+                {"role": "user", "content": criar_prompt(texto)},
+            ],
             temperature=0,
             max_tokens=512,
             extra_body={"chat_template_kwargs": {"enable_thinking": False}},
@@ -260,7 +240,7 @@ def classificar_texto(texto: str, request_id: str, origem: str) -> str:
         raise ErroClassificacao(
             502, "Não foi possível classificar a nota. Tenta novamente."
         ) from exc
-    conteudo = (resposta.choices[0].message.content or "").strip(" .,'\"[]\n").lower()
+    conteudo = (resposta.choices[0].message.content or "").strip().lower().rstrip(".")
     if conteudo not in CATEGORIES:
         log_event(
             logging.ERROR,
