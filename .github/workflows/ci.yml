@@ -1,0 +1,53 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: ${{ matrix.check }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [ruff, format, mypy, tests, requirements]
+    defaults:
+      run:
+        working-directory: app_notas
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: '0.13.8'
+      - run: uv sync --locked
+      - if: matrix.check == 'ruff'
+        run: uv run --locked ruff check .
+      - if: matrix.check == 'format'
+        run: uv run --locked ruff format --check .
+      - if: matrix.check == 'mypy'
+        run: uv run --locked mypy
+      - if: matrix.check == 'tests'
+        run: uv run --locked python run_tests.py
+      - if: matrix.check == 'requirements'
+        run: |
+          uv export --locked --no-dev --no-hashes --no-emit-project --no-header --output-file /tmp/requirements-ci.txt
+          diff -u requirements.txt /tmp/requirements-ci.txt
+  commits:
+    name: Conventional Commits
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Verificar commits do PR
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python .github/scripts/check_commits.py "$BASE_SHA"

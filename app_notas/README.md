@@ -6,10 +6,8 @@ Aplicação FastAPI que classifica uma nota com a melhor configuração concluí
 
 ```bash
 cd app_notas
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app:app --reload
+uv sync
+uv run uvicorn app:app --reload
 ```
 
 A chave é carregada de `app_notas/.env`, do `.env` da pasta-mãe ou das variáveis de ambiente. Abrir http://127.0.0.1:8000.
@@ -69,3 +67,4 @@ Esta alteração não cria armazenamento por utilizador nem adiciona `X-Utilizad
 As notas continuam no `localStorage` do navegador e o isolamento completo entre
 utilizadores pertence aos tickets R1.2 e R1.4. Nenhuma nota, chave ou conteúdo pessoal
 é incluído pelos eventos de log existentes.
+A experiência de falha, os testes e as instruções para consultar logs estão em [OBSERVABILIDADE.md](OBSERVABILIDADE.md). Para executar os testes locais: `uv sync --locked` e `uv run python run_tests.py`.
