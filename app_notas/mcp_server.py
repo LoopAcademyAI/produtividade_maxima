@@ -2,15 +2,16 @@
 
 Nota mcp 2.x: FastMCP passou a chamar-se MCPServer (mcp.server.mcpserver).
 """
+
 from contextlib import asynccontextmanager
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 
 mcp = MCPServer(
-    name='entrelinhas',
-    instructions='Classifica notas curtas em português numa categoria.',
-    version='1.0.0',
+    name="entrelinhas",
+    instructions="Classifica notas curtas em português numa categoria.",
+    version="1.0.0",
 )
 
 
@@ -21,10 +22,12 @@ def _criar_sub_app():
     # A proteção contra DNS rebinding do SDK só aceita Host=localhost por defeito, o que
     # rejeitaria o domínio da Vercel; o controlo de acesso é feito pela chave (passo 3).
     return mcp.streamable_http_app(
-        streamable_http_path='/mcp',
+        streamable_http_path="/mcp",
         stateless_http=True,
         json_response=True,
-        transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=False
+        ),
     )
 
 
@@ -50,7 +53,9 @@ class McpApp:
 
     async def __call__(self, scope, receive, send):
         if self._app is None:
-            raise RuntimeError('Servidor MCP não iniciado: o lifespan da aplicação não correu.')
+            raise RuntimeError(
+                "Servidor MCP não iniciado: o lifespan da aplicação não correu."
+            )
         await self._app(scope, receive, send)
 
 
