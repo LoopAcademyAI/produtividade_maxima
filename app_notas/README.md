@@ -46,10 +46,8 @@ As decisões foram feitas assim por serem verificáveis e compatíveis com o mod
 Executar todos os testes offline deste diretório:
 
 ```bash
-python test_ticket.py
-python test_notas.py
-python test_observabilidade.py
-python test_grafana.py
+uv sync --locked
+uv run python run_tests.py
 ```
 
 Executar a avaliação real temporária do Nemotron (requer rede e `NVIDIA_API_KEY`):
@@ -63,8 +61,7 @@ percentagens e o verdict de regressão; não imprime nem grava o texto das notas
 Neste ticket, os ataques devem obter `15/15` respostas resistentes e o golden normal
 não pode perder mais de uma nota face à baseline temporária.
 
-Esta alteração não cria armazenamento por utilizador nem adiciona `X-Utilizador`.
-As notas continuam no `localStorage` do navegador e o isolamento completo entre
-utilizadores pertence aos tickets R1.2 e R1.4. Nenhuma nota, chave ou conteúdo pessoal
-é incluído pelos eventos de log existentes.
-A experiência de falha, os testes e as instruções para consultar logs estão em [OBSERVABILIDADE.md](OBSERVABILIDADE.md). Para executar os testes locais: `uv sync --locked` e `uv run python run_tests.py`.
+Esta alteração mantém o isolamento por utilizador via `X-Utilizador`: o sistema
+rejeita pedidos sem um UUID válido, separa as notas por utilizador e impede apagar
+notas de outro utilizador. A autenticação por contas continua fora deste ticket.
+Nenhuma nota, chave ou conteúdo pessoal é incluído pelos eventos de log existentes.

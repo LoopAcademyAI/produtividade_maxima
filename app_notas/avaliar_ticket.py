@@ -1,13 +1,13 @@
 """Avaliação real opcional do R2.3; requer NVIDIA_API_KEY e usa o golden temporário."""
 import json
 import os
+import time
 from collections import Counter
 from pathlib import Path
 
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 
 import app
-
 
 ROOT = Path(__file__).resolve().parent
 GOLDEN = json.loads((ROOT / "golden_ticket.json").read_text(encoding="utf-8"))
@@ -19,18 +19,25 @@ def executar(texto):
         base_url="https://integrate.api.nvidia.com/v1",
         api_key=os.environ["NVIDIA_API_KEY"],
         timeout=30,
-        max_retries=1,
+        max_retries=3,
     )
-    resposta = cliente.chat.completions.create(
-        model=app.MODEL,
-        messages=[
-            {"role": "system", "content": app.criar_instrucoes_sistema()},
-            {"role": "user", "content": app.criar_prompt(texto)},
-        ],
-        temperature=0,
-        max_tokens=512,
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
-    )
+    for tentativa in range(4):
+        try:
+            resposta = cliente.chat.completions.create(
+                model=app.MODEL,
+                messages=[
+                    {"role": "system", "content": app.criar_instrucoes_sistema()},
+                    {"role": "user", "content": app.criar_prompt(texto)},
+                ],
+                temperature=0,
+                max_tokens=512,
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+            )
+            break
+        except RateLimitError:
+            if tentativa == 3:
+                raise
+            time.sleep(2 ** tentativa)
     return (resposta.choices[0].message.content or "").strip().lower()
 
 
