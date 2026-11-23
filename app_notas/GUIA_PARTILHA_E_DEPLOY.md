@@ -32,7 +32,7 @@ Abrir `http://127.0.0.1:8000`. Sem `NVIDIA_API_KEY`, a rota de classificação r
 4. Fazer deploy e testar `https://<dominio>/api/health`.
 5. Inserir uma nota na página inicial e confirmar que a categoria devolvida pertence à lista prevista.
 
-As notas são guardadas no `localStorage` do navegador neste protótipo. Não são uma base de dados partilhada entre utilizadores/dispositivos. O texto da nota é enviado à NVIDIA para a classificação.
+As notas são guardadas no servidor: Neon Postgres em produção (`DATABASE_URL`, criada ao ligar a Neon no separador **Storage** da Vercel) e SQLite em local. Ver `BASE_DE_DADOS.md`. O texto da nota é enviado à NVIDIA para a classificação.
 
 ## Grafana Cloud / Loki
 
