@@ -18,6 +18,8 @@ def main() -> int:
     invalid = []
     for commit in commits:
         subject = git("show", "-s", "--format=%s", commit)
+        if subject.startswith("Merge "):
+            continue
         if not PATTERN.fullmatch(subject):
             invalid.append((commit[:12], subject))
     if invalid:
