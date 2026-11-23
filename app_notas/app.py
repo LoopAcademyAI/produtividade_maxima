@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Annotated
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from starlette.datastructures import Headers
 from openai import OpenAI, OpenAIError
@@ -23,6 +23,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 from pydantic import BaseModel, Field
 
+import db
 from mcp_server import mcp, mcp_app
 
 ROOT = Path(__file__).resolve().parent
@@ -179,6 +180,61 @@ def classificar(nota: Nota, request: Request):
         return {'categoria': classificar_texto(nota.texto, request.state.request_id, origem='http')}
     except ErroClassificacao as exc:
         raise HTTPException(status_code=exc.status, detail=exc.mensagem) from exc
+
+
+# --- Notas guardadas no servidor (R1). Porquê e limites: BASE_DE_DADOS.md ---
+
+def validar_utilizador(x_utilizador: str | None) -> str:
+    """Ainda não há contas: o navegador gera um identificador e manda-o em cada pedido.
+    Isto separa as notas de cada pessoa, mas NÃO é autenticação (quem souber o id lê as notas). Ticket próprio."""
+    try:
+        return str(uuid.UUID(x_utilizador or ''))
+    except ValueError:
+        raise HTTPException(status_code=400, detail='Falta o cabeçalho X-Utilizador (um UUID).')
+
+
+class NotaImportada(BaseModel):
+    texto: str = Field(min_length=1, max_length=4000)
+    categoria: str
+    criada: str | None = None
+    id: str | None = None
+
+
+@app.post('/api/notas', status_code=201)
+def criar_nota(nota: Nota, request: Request, x_utilizador: str | None = Header(default=None)):
+    utilizador = validar_utilizador(x_utilizador)
+    texto = nota.texto.strip()
+    try:
+        categoria = classificar_texto(texto, request.state.request_id, origem='http')
+    except ErroClassificacao as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.mensagem) from exc
+    guardada = db.criar(utilizador, texto, categoria)
+    log_event(logging.INFO, 'nota_guardada', request_id=request.state.request_id, categoria=categoria)
+    return guardada
+
+
+@app.get('/api/notas')
+def listar_notas(categoria: str | None = None, q: str | None = None, x_utilizador: str | None = Header(default=None)):
+    if categoria and categoria not in CATEGORIES:
+        raise HTTPException(status_code=422, detail=f'Categoria desconhecida. Possíveis: {", ".join(CATEGORIES)}.')
+    return db.listar(validar_utilizador(x_utilizador), categoria=categoria, procura=q)
+
+
+@app.delete('/api/notas/{id}', status_code=204)
+def apagar_nota(id: str, x_utilizador: str | None = Header(default=None)):
+    if not db.apagar(validar_utilizador(x_utilizador), id):
+        raise HTTPException(status_code=404, detail='Nota não encontrada.')
+
+
+@app.post('/api/notas/importar')
+def importar_notas(notas: list[NotaImportada], x_utilizador: str | None = Header(default=None)):
+    """Uma vez por navegador: passa as notas do localStorage para o servidor, sem as reclassificar."""
+    utilizador = validar_utilizador(x_utilizador)
+    existentes = {n['id'] for n in db.listar(utilizador, limite=10_000)}
+    novas = [n for n in notas if n.categoria in CATEGORIES and n.id not in existentes]
+    for n in novas:
+        db.criar(utilizador, n.texto, n.categoria, criada_em=n.criada, id=n.id)
+    return {'importadas': len(novas), 'ignoradas': len(notas) - len(novas)}
 
 
 CHAVE_LOG_MCP = 'entrelinhas:mcp:chamadas'
