@@ -34,7 +34,7 @@ Abrir `http://127.0.0.1:8000`. Sem `NVIDIA_API_KEY`, a rota de classificação r
 4. Fazer deploy e testar `https://<dominio>/api/health`.
 5. Inserir uma nota na página inicial e confirmar que a categoria devolvida pertence à lista prevista.
 
-As notas são guardadas no `localStorage` do navegador neste protótipo. Não são uma base de dados partilhada entre utilizadores/dispositivos. O texto da nota é enviado à NVIDIA para a classificação.
+As notas são guardadas no servidor: Neon Postgres em produção (`DATABASE_URL`, criada ao ligar a Neon no separador **Storage** da Vercel) e SQLite em local. Ver `BASE_DE_DADOS.md`. O texto da nota é enviado à NVIDIA para a classificação.
 
 ## Grafana Cloud / Loki
 
@@ -63,7 +63,7 @@ Os eventos enviados não incluem o texto da nota, o prompt ou credenciais. Os lo
 
 ## Demonstração de erro
 
-Para a demonstração de observabilidade, o texto exato `TESTE OBSERVABILIDADE E` provoca intencionalmente um erro HTTP 500 e cria o evento `pedido_erro_inesperado`. Isto é apenas para demonstrar a observabilidade. **Remover esta condição antes de disponibilizar a aplicação a utilizadores reais.**
+O gatilho de demonstração (o texto `TESTE OBSERVABILIDADE E`, que provocava um HTTP 500) foi removido a 20/11/2026. O erro `pedido_erro_inesperado` continua a ser verificado nos testes locais (`test_observabilidade.py` e `test_grafana.py`), que simulam a falha sem a expor em produção.
 
 Testes locais:
 
