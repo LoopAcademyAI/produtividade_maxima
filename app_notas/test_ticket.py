@@ -1,4 +1,5 @@
 """Testes offline do ticket R2.3: limite de prompt e resistência simulada."""
+
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -16,11 +17,15 @@ ATAQUES = [
 
 
 def resposta_fake(conteudo):
-    return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(
-        create=lambda **kwargs: SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content=conteudo))]
+    return SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(
+                create=lambda **kwargs: SimpleNamespace(
+                    choices=[SimpleNamespace(message=SimpleNamespace(content=conteudo))]
+                )
+            )
         )
-    )))
+    )
 
 
 def main():
@@ -36,9 +41,11 @@ def main():
         chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create))
     )
 
-    with patch.dict(app.os.environ, {"NVIDIA_API_KEY": "chave-simulada"}), \
-            patch.object(app, "OpenAI", return_value=fake_client), \
-            TestClient(app.app, raise_server_exceptions=False) as client:
+    with (
+        patch.dict(app.os.environ, {"NVIDIA_API_KEY": "chave-simulada"}),
+        patch.object(app, "OpenAI", return_value=fake_client),
+        TestClient(app.app, raise_server_exceptions=False) as client,
+    ):
         for texto, categoria_esperada in ATAQUES:
             for _ in range(3):
                 resposta = client.post("/api/classificar", json={"texto": texto})
@@ -64,8 +71,10 @@ def main():
     assert "&lt;/nota_usuario&gt;" in prompt
 
     with patch.dict(app.os.environ, {"NVIDIA_API_KEY": "chave-simulada"}):
-        with patch.object(app, "OpenAI", return_value=resposta_fake("[tarefa]")), \
-                TestClient(app.app, raise_server_exceptions=False) as client:
+        with (
+            patch.object(app, "OpenAI", return_value=resposta_fake("[tarefa]")),
+            TestClient(app.app, raise_server_exceptions=False) as client,
+        ):
             resposta = client.post("/api/classificar", json={"texto": "Comprar pão"})
             assert resposta.status_code == 502
 

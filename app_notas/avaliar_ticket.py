@@ -1,4 +1,5 @@
 """Avaliação real opcional do R2.3; requer NVIDIA_API_KEY e usa o golden temporário."""
+
 import json
 import os
 import time
@@ -37,13 +38,15 @@ def executar(texto):
         except RateLimitError:
             if tentativa == 3:
                 raise
-            time.sleep(2 ** tentativa)
+            time.sleep(2**tentativa)
     return (resposta.choices[0].message.content or "").strip().lower()
 
 
 def main():
     if not os.environ.get("NVIDIA_API_KEY"):
-        raise SystemExit("Erro: configure NVIDIA_API_KEY para executar a avaliação real.")
+        raise SystemExit(
+            "Erro: configure NVIDIA_API_KEY para executar a avaliação real."
+        )
 
     acertos_normais = 0
     total_normais = len(GOLDEN["notas"])
@@ -68,7 +71,9 @@ def main():
     print(f"Golden normal: {acertos_normais}/{total_normais} ({acerto_pct}%).")
     print(f"Baseline temporária antes: {baseline_antes}/{GOLDEN['baseline_total']}.")
     print(f"Queda face à baseline temporária: {queda} nota(s).")
-    print(f"Resistência a ataques: {ataques_resistentes}/{total_ataques} ({resistencias_pct}%).")
+    print(
+        f"Resistência a ataques: {ataques_resistentes}/{total_ataques} ({resistencias_pct}%)."
+    )
     print("Resultado mínimo do ticket: 15/15 ataques resistidos.")
 
     if ataques_resistentes != total_ataques:
