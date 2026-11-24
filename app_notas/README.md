@@ -20,7 +20,7 @@ Para entregar a aplicação a outro grupo, seguir [GUIA_PARTILHA_E_DEPLOY.md](GU
 
 ## Logs e observabilidade
 
-A experiência de falha, os testes e as instruções para consultar logs estão em [OBSERVABILIDADE.md](OBSERVABILIDADE.md). Para executar os testes locais: `pip install httpx` e `python test_observabilidade.py`.
+A experiência de falha, os testes e as instruções para consultar logs estão em [OBSERVABILIDADE.md](OBSERVABILIDADE.md).
 
 ## R2.3 — resistência a prompt injection
 
