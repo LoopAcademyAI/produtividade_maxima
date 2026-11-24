@@ -44,9 +44,8 @@ No terminal:
 
 ```bash
 cd app_notas
-source .venv/bin/activate
-pip install httpx
-python test_observabilidade.py
+uv sync
+uv run python run_tests.py
 ```
 
 O teste simula uma resposta `E` e verifica HTTP 502 e o log `categoria_invalida`; simula uma exceção inesperada e verifica HTTP 500 e `pedido_erro_inesperado`; testa também uma resposta válida e que o texto e a chave de teste não aparecem nos logs. Não precisa de chamadas nem quota NVIDIA. O HTTP 500 é intencional no teste.

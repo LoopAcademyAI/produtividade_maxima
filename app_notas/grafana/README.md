@@ -43,10 +43,8 @@ A URL é validada para evitar envio acidental de credenciais a destinos fora de 
 
 ```bash
 cd app_notas
-source .venv/bin/activate
-pip install httpx
-python test_grafana.py
-python test_observabilidade.py
+uv sync
+uv run python run_tests.py
 ```
 
 O primeiro teste simula a API de ingestão e verifica o evento do erro, a falha de envio e o bloqueio de domínios inválidos. O segundo verifica os códigos HTTP e que a nota não é incluída nos logs. Não cria recursos Grafana nem envia dados reais.

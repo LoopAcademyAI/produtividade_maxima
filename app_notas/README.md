@@ -6,10 +6,8 @@ Aplicação FastAPI que classifica uma nota com a melhor configuração concluí
 
 ```bash
 cd app_notas
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app:app --reload
+uv sync
+uv run uvicorn app:app --reload
 ```
 
 A chave é carregada de `app_notas/.env`, do `.env` da pasta-mãe ou das variáveis de ambiente. Abrir http://127.0.0.1:8000.
@@ -22,7 +20,7 @@ Para entregar a aplicação a outro grupo, seguir [GUIA_PARTILHA_E_DEPLOY.md](GU
 
 ## Logs e observabilidade
 
-A experiência de falha, os testes e as instruções para consultar logs estão em [OBSERVABILIDADE.md](OBSERVABILIDADE.md). Para executar os testes locais: `pip install httpx`, `python test_observabilidade.py` e `python test_notas.py`.
+A experiência de falha, os testes e as instruções para consultar logs estão em [OBSERVABILIDADE.md](OBSERVABILIDADE.md). Para executar os testes locais: `uv sync --locked` e `uv run python run_tests.py`.
 
 ## Agente LangGraph (R2.1)
 
@@ -37,7 +35,7 @@ O endpoint `POST /api/agente` recebe `X-Utilizador` e um pedido JSON:
 
 Sem `X-Utilizador`, com o valor vazio ou sem um UUID válido, responde com HTTP 400. A validação reutiliza `validar_utilizador()` da R1.1, para manter o mesmo contrato das rotas de notas. Se `conversa` não for fornecida, o servidor cria um identificador; o histórico não é guardado entre pedidos.
 
-A resposta segue o contrato do agente:
+A resposta segue o contrato do agente (o modelo pode reproduzir uma mensagem diferente, esta é meramente ilustrativa):
 
 ```json
 {
