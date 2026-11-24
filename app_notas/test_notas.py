@@ -6,13 +6,13 @@ import uuid
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from fastapi.testclient import TestClient
+
 os.environ["NOTAS_SQLITE"] = os.path.join(tempfile.mkdtemp(), "teste.db")
 os.environ.pop("DATABASE_URL", None)
 os.environ.pop("POSTGRES_URL", None)
 
-from fastapi.testclient import TestClient  # noqa: E402
-
-import app  # noqa: E402
+import app
 
 
 def modelo(conteudo):

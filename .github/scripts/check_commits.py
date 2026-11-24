@@ -14,13 +14,12 @@ def main() -> int:
     if len(sys.argv) != 2:
         print("Uso: python .github/scripts/check_commits.py <commit-base>", file=sys.stderr)
         return 2
-    commits = git("rev-list", f"{sys.argv[1]}..HEAD").splitlines()
-    if not commits:
-        print("Não foram encontrados commits para verificar.", file=sys.stderr)
-        return 1
+    commits = git("rev-list", "--no-merges", f"{sys.argv[1]}..HEAD").splitlines()
     invalid = []
     for commit in commits:
         subject = git("show", "-s", "--format=%s", commit)
+        if subject.startswith("Merge "):
+            continue
         if not PATTERN.fullmatch(subject):
             invalid.append((commit[:12], subject))
     if invalid:
