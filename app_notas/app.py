@@ -21,6 +21,7 @@ from mcp.server.mcpserver import Context
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 from openai import OpenAI, OpenAIError
+from openai.types.chat import ChatCompletionMessageParam, ChatCompletionToolParam
 from pydantic import BaseModel, Field
 from starlette.datastructures import Headers
 
@@ -357,20 +358,20 @@ def importar_notas(
     return {"importadas": len(novas), "ignoradas": len(notas) - len(novas)}
 
 
-FERRAMENTAS_AGENTE = [
+FERRAMENTAS_AGENTE: list[ChatCompletionToolParam] = [
     {
-        'type': 'function',
-        'function': {
-            'name': 'ferramenta_em_desenvolvimento',
-            'description': 'Ferramenta temporária; não executa ações nem altera notas.',
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'operacao': {'type': 'string'},
-                    'argumentos': {'type': 'object'},
+        "type": "function",
+        "function": {
+            "name": "ferramenta_em_desenvolvimento",
+            "description": "Ferramenta temporária; não executa ações nem altera notas.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "operacao": {"type": "string"},
+                    "argumentos": {"type": "object"},
                 },
-                'required': ['operacao', 'argumentos'],
-                'additionalProperties': False,
+                "required": ["operacao", "argumentos"],
+                "additionalProperties": False,
             },
         },
     }
@@ -378,18 +379,23 @@ FERRAMENTAS_AGENTE = [
 
 
 def chamar_modelo_agente(
-    mensagens: list[dict[str, Any]],
+    mensagens: list[ChatCompletionMessageParam],
     request_id: str,
 ) -> RespostaModelo:
     """Chama o modelo com uma ferramenta placeholder, sem executar operações reais."""
-    key = os.environ.get('NVIDIA_API_KEY')
+    key = os.environ.get("NVIDIA_API_KEY")
     if not key:
-        log_event(logging.ERROR, 'configuracao_em_falta', request_id=request_id,
-                  origem='agente', modelo=MODEL)
-        raise HTTPException(503, 'A chave NVIDIA não está configurada no servidor.')
+        log_event(
+            logging.ERROR,
+            "configuracao_em_falta",
+            request_id=request_id,
+            origem="agente",
+            modelo=MODEL,
+        )
+        raise HTTPException(503, "A chave NVIDIA não está configurada no servidor.")
     try:
         cliente = OpenAI(
-            base_url='https://integrate.api.nvidia.com/v1',
+            base_url="https://integrate.api.nvidia.com/v1",
             api_key=key,
             timeout=30,
             max_retries=1,
@@ -398,50 +404,68 @@ def chamar_modelo_agente(
             model=MODEL,
             messages=mensagens,
             tools=FERRAMENTAS_AGENTE,
-            tool_choice='auto',
+            tool_choice="auto",
             temperature=0,
             max_tokens=512,
-            extra_body={'chat_template_kwargs': {'enable_thinking': False}},
+            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
         )
     except OpenAIError as exc:
-        log_event(logging.ERROR, 'modelo_indisponivel', request_id=request_id,
-                  origem='agente', modelo=MODEL, tipo_erro=type(exc).__name__)
-        raise HTTPException(502, 'Não foi possível obter uma resposta do agente. Tenta novamente.') from exc
+        log_event(
+            logging.ERROR,
+            "modelo_indisponivel",
+            request_id=request_id,
+            origem="agente",
+            modelo=MODEL,
+            tipo_erro=type(exc).__name__,
+        )
+        raise HTTPException(
+            502, "Não foi possível obter uma resposta do agente. Tenta novamente."
+        ) from exc
 
     if not resposta.choices:
-        raise HTTPException(502, 'O modelo não devolveu uma resposta utilizável.')
+        raise HTTPException(502, "O modelo não devolveu uma resposta utilizável.")
     mensagem_modelo = resposta.choices[0].message
     chamadas: list[ChamadaFerramenta] = []
     for chamada in mensagem_modelo.tool_calls or []:
+        if chamada.type != "function":
+            raise HTTPException(
+                502, "O modelo devolveu um tipo de ferramenta inválido."
+            )
         try:
-            argumentos = json.loads(chamada.function.arguments or '{}')
+            argumentos = json.loads(chamada.function.arguments or "{}")
         except (json.JSONDecodeError, TypeError) as exc:
-            raise HTTPException(502, 'O modelo devolveu argumentos de ferramenta inválidos.') from exc
+            raise HTTPException(
+                502, "O modelo devolveu argumentos de ferramenta inválidos."
+            ) from exc
         if not isinstance(argumentos, dict):
-            raise HTTPException(502, 'O modelo devolveu argumentos de ferramenta inválidos.')
-        chamadas.append({
-            'id': chamada.id,
-            'nome': chamada.function.name,
-            'args': argumentos,
-        })
+            raise HTTPException(
+                502, "O modelo devolveu argumentos de ferramenta inválidos."
+            )
+        chamadas.append(
+            {
+                "id": chamada.id,
+                "nome": chamada.function.name,
+                "args": argumentos,
+            }
+        )
 
-    texto = (mensagem_modelo.content or '').strip()
+    texto = (mensagem_modelo.content or "").strip()
     if not texto and not chamadas:
-        raise HTTPException(502, 'O modelo não devolveu uma resposta utilizável.')
-    return {'texto': texto, 'chamadas': chamadas}
+        raise HTTPException(502, "O modelo não devolveu uma resposta utilizável.")
+    return {"texto": texto, "chamadas": chamadas}
 
 
-@app.post('/api/agente', response_model=RespostaAgente)
+@app.post("/api/agente", response_model=RespostaAgente)
 def agente(
     pedido: PedidoAgente,
     request: Request,
-    x_utilizador: str | None = Header(default=None, alias='X-Utilizador'),
+    x_utilizador: str | None = Header(default=None, alias="X-Utilizador"),
 ):
     utilizador = validar_utilizador(x_utilizador)
 
     conversa = pedido.conversa if pedido.conversa is not None else uuid.uuid4().hex
 
-    def modelo(mensagens: list[dict[str, Any]]) -> RespostaModelo:
+    def modelo(mensagens: list[ChatCompletionMessageParam]) -> RespostaModelo:
         return chamar_modelo_agente(mensagens, request.state.request_id)
 
     return executar_agente(
@@ -452,7 +476,7 @@ def agente(
     )
 
 
-CHAVE_LOG_MCP = 'entrelinhas:mcp:chamadas'
+CHAVE_LOG_MCP = "entrelinhas:mcp:chamadas"
 MAX_ENTRADAS_LOG_MCP = 10000
 
 
