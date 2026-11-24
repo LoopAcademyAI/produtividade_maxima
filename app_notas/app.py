@@ -301,7 +301,10 @@ def classificar_texto(
             getattr(usage, "prompt_tokens", None),
             getattr(usage, "completion_tokens", None),
         )
-    conteudo = (resposta.choices[0].message.content or "").strip()
+    escolhas = getattr(resposta, "choices", None)
+    mensagem = getattr(escolhas[0], "message", None) if escolhas else None
+    conteudo_bruto = getattr(mensagem, "content", None)
+    conteudo = conteudo_bruto.strip() if isinstance(conteudo_bruto, str) else ""
     categoria = extrair_categoria_json(conteudo)
     if categoria is None:
         log_event(

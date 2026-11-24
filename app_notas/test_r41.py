@@ -23,6 +23,14 @@ def cliente_falso(conteudo: str, pedidos: list[dict]) -> SimpleNamespace:
     )
 
 
+def cliente_com_resposta(resposta: object) -> SimpleNamespace:
+    return SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(create=lambda **kwargs: resposta)
+        )
+    )
+
+
 def main() -> None:
     log = io.StringIO()
     handlers_antigos = app.logger.handlers[:]
@@ -62,10 +70,53 @@ def main() -> None:
         eventos = [json.loads(linha) for linha in log.getvalue().splitlines()]
         assert any(evento["event"] == "categoria_invalida" for evento in eventos)
         assert "nota privada" not in log.getvalue()
+
+        log.seek(0)
+        log.truncate(0)
+        with (
+            TestClient(app.app, raise_server_exceptions=False) as client,
+            patch.dict(app.os.environ, {"NVIDIA_API_KEY": "chave-simulada"}),
+            patch.object(
+                app,
+                "OpenAI",
+                return_value=cliente_com_resposta(SimpleNamespace(choices=[])),
+            ),
+        ):
+            resposta = client.post(
+                "/api/classificar", json={"texto": "nota privada sem escolhas"}
+            )
+        assert resposta.status_code == 502
+        eventos = [json.loads(linha) for linha in log.getvalue().splitlines()]
+        assert any(evento["event"] == "categoria_invalida" for evento in eventos)
+        assert "nota privada sem escolhas" not in log.getvalue()
+
+        log.seek(0)
+        log.truncate(0)
+        with (
+            TestClient(app.app, raise_server_exceptions=False) as client,
+            patch.dict(app.os.environ, {"NVIDIA_API_KEY": "chave-simulada"}),
+            patch.object(
+                app,
+                "OpenAI",
+                return_value=cliente_com_resposta(
+                    SimpleNamespace(choices=[SimpleNamespace()])
+                ),
+            ),
+        ):
+            resposta = client.post(
+                "/api/classificar", json={"texto": "nota privada sem mensagem"}
+            )
+        assert resposta.status_code == 502
+        eventos = [json.loads(linha) for linha in log.getvalue().splitlines()]
+        assert any(evento["event"] == "categoria_invalida" for evento in eventos)
+        assert "nota privada sem mensagem" not in log.getvalue()
     finally:
         app.logger.handlers = handlers_antigos
 
-    print("OK: JSON Schema, categoria válida e resposta fora do schema → 502 seguro.")
+    print(
+        "OK: JSON Schema, categoria inválida e envelopes sem escolhas/mensagem "
+        "→ 502 seguro."
+    )
 
 
 if __name__ == "__main__":
