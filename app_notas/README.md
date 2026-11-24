@@ -123,6 +123,24 @@ rejeita pedidos sem um UUID válido, separa as notas por utilizador e impede apa
 notas de outro utilizador. A autenticação por contas continua fora deste ticket.
 Nenhuma nota, chave ou conteúdo pessoal é incluído pelos eventos de log existentes.
 
+## Datas das notas de agenda (R2.2)
+
+Ao criar uma nota classificada como `agenda`, a resposta e a listagem incluem o campo `quando`. É uma data ISO 8601 (`2026-12-10`), uma data com hora local (`2026-12-10T15:30:00`), ou `null` quando não é possível identificar uma data. Outras categorias ficam com `null`. Não são criados lembretes.
+
+A aplicação faz uma chamada adicional ao mesmo modelo apenas para notas classificadas como `agenda`. O modelo identifica o evento principal e copia literalmente a expressão de data, hora e evidência; o código valida os excertos contra a nota e converte a expressão para ISO localmente. O modelo não fornece a data ISO. O resolvedor reconhece datas `AAAA-MM-DD`, `DD/MM/AAAA`, `DD/MM`, `10 de dezembro` (com ano opcional), `hoje`, `amanhã` e dias da semana, incluindo a gralha `sabádp`. Reconhece horas como `21:30`, `21h30`, `21h` e algumas horas por extenso. Sem hora precisa guarda só a data. A data de referência é a data atual em `Europe/Lisbon`; um dia da semana significa a próxima ocorrência, incluindo hoje, e sem ano uma data anterior à referência é interpretada no ano seguinte. A hora guardada é local e não contém fuso nem desambiguação de mudança de hora.
+
+Se a nota estiver incerta, cancelada, sem dia definido, tiver compromissos igualmente centrais, ou se a resposta do modelo não passar as validações, `quando` fica `null`. Uma falha temporária do modelo também não impede guardar a nota: fica `null` e é registado apenas um evento de diagnóstico sem o texto da nota. A chamada adicional aumenta a latência e o custo das notas de agenda; o texto já é enviado ao mesmo fornecedor para classificação. A avaliação atual usa notas sintéticas criadas internamente e não demonstra desempenho em notas reais nem substitui revisão externa. Notas antigas e importadas ficam com `quando` vazio, sem extração retroativa. O esquema é atualizado automaticamente, preservando as notas existentes; testar a migração em Postgres antes do deploy.
+
+Para verificar a integração offline da R2.2:
+
+```bash
+uv run python test_agenda.py
+uv run python avaliar_agenda.py
+uv run python run_tests.py
+```
+
+`test_agenda.py` simula as respostas do modelo e verifica a extração, a validação literal, os casos ambíguos, erros e persistência sem chamar a API. `avaliar_agenda.py` testa o extrator real contra as 10 notas sintéticas em `eval/agenda.jsonl`, imprime os resultados e requer `NVIDIA_API_KEY` e acesso à API. O critério é pelo menos 8/10 e zero erros técnicos. O holdout interno de 40 notas também foi sintético; os seus resultados são indicativos e não substituem avaliação independente com dados representativos.
+
 ## R4.1 — resposta JSON validada
 
 O pedido de classificação usa `response_format` com um JSON Schema estrito: a resposta só pode ser um objeto com a chave `categoria`, cujo valor tem de pertencer às categorias configuradas. A aplicação volta a validar o conteúdo recebido, porque uma resposta do fornecedor pode falhar o contrato. Nesse caso devolve HTTP 502, regista `categoria_invalida` sem guardar o texto da nota e não cria nem altera dados.

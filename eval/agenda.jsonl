@@ -1,0 +1,10 @@
+{"texto":"Jantar Sabádp as 21:30","referencia":"2026-11-23T10:00:00","esperado":"2026-11-28T21:30:00"}
+{"texto":"Dentista amanhã às 15:30","referencia":"2026-11-23T10:00:00","esperado":"2026-11-24T15:30:00"}
+{"texto":"Consulta hoje às 9h","referencia":"2026-11-23T08:00:00","esperado":"2026-11-23T09:00:00"}
+{"texto":"Reunião na terça-feira às 14h30","referencia":"2026-11-23T10:00:00","esperado":"2026-11-24T14:30:00"}
+{"texto":"Aniversário 10/12/2026 às 20:00","referencia":"2026-11-23T10:00:00","esperado":"2026-12-10T20:00:00"}
+{"texto":"Consulta 2026-12-03 às 09:15","referencia":"2026-11-23T10:00:00","esperado":"2026-12-03T09:15:00"}
+{"texto":"Férias 10 de dezembro de 2026","referencia":"2026-11-23T10:00:00","esperado":"2026-12-10"}
+{"texto":"Jantar dia 24/12 às 21h","referencia":"2026-11-23T10:00:00","esperado":"2026-12-24T21:00:00"}
+{"texto":"Reunião domingo","referencia":"2026-11-23T10:00:00","esperado":"2026-11-29"}
+{"texto":"Marcar uma reunião com a Ana","referencia":"2026-11-23T10:00:00","esperado":null}
