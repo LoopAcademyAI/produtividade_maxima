@@ -2,6 +2,7 @@
 
 import contextlib
 import io
+import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -32,7 +33,11 @@ def main():
     assert "Tokens disponíveis: 3/3" in resultado
 
     resposta = SimpleNamespace(
-        choices=[SimpleNamespace(message=SimpleNamespace(content="Tarefa."))],
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(content=json.dumps({"categoria": "tarefa"}))
+            )
+        ],
         usage=SimpleNamespace(prompt_tokens=12, completion_tokens=3),
     )
     cliente = SimpleNamespace(
