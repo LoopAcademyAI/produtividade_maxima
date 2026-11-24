@@ -23,3 +23,49 @@ Para entregar a aplicação a outro grupo, seguir [GUIA_PARTILHA_E_DEPLOY.md](GU
 ## Logs e observabilidade
 
 A experiência de falha, os testes e as instruções para consultar logs estão em [OBSERVABILIDADE.md](OBSERVABILIDADE.md). Para executar os testes locais: `pip install httpx`, `python test_observabilidade.py` e `python test_notas.py`.
+
+## Agente LangGraph (R2.1)
+
+O endpoint `POST /api/agente` recebe `X-Utilizador` e um pedido JSON:
+
+```json
+{
+  "mensagem": "O que tenho para fazer?",
+  "conversa": "identificador-opcional"
+}
+```
+
+Sem `X-Utilizador`, com o valor vazio ou sem um UUID válido, responde com HTTP 400. A validação reutiliza `validar_utilizador()` da R1.1, para manter o mesmo contrato das rotas de notas. Se `conversa` não for fornecida, o servidor cria um identificador; o histórico não é guardado entre pedidos.
+
+A resposta segue o contrato do agente:
+
+```json
+{
+  "resposta": "Ainda não tenho ferramentas reais ligadas.",
+  "conversa": "identificador-da-conversa",
+  "ferramentas": [],
+  "pendente": null
+}
+```
+
+O grafo tem um nó de modelo e um nó temporário de ferramentas. A ferramenta placeholder não lê nem altera notas; as ferramentas reais e a memória ficam fora do âmbito deste ticket. O identificador do utilizador é validado e passado ao estado, mas não é usado para aceder à base de dados nesta fase.
+
+```mermaid
+flowchart TD
+    START --> Modelo
+    Modelo -->|Sem ferramenta| END
+    Modelo -->|Pediu ferramenta e passos abaixo de 6| FerramentaPlaceholder
+    FerramentaPlaceholder --> Modelo
+    Modelo -->|Pediu ferramenta no 6.º passo| Limite
+    Limite --> END
+```
+
+O contador limita a seis chamadas ao modelo, em vez de contar nós executados: cada ciclo também passa pelo nó de ferramentas, e o limite não deve cortar um ciclo a meio. Se o modelo continuar a pedir ferramentas, o endpoint responde com uma mensagem explícita no campo `resposta`, sem devolver HTTP 500. O grafo é criado sem checkpoint; por isso, cada pedido é independente. O `X-Utilizador` separa os dados por identificador conforme a R1.1, mas continua a não ser autenticação.
+
+Para executar os testes do endpoint e do ciclo sem rede ou chaves reais:
+
+```bash
+python test_agente.py
+```
+
+Os testes simulam o modelo e verificam o cabeçalho obrigatório, o formato de resposta, o identificador de conversa, o limite de seis passos e que mensagens, identificadores de utilizador e argumentos não são registados nos logs.
