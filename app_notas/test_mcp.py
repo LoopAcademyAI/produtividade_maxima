@@ -32,6 +32,7 @@ INITIALIZE = {
 
 
 def resposta_fake(conteudo):
+    conteudo = json.dumps({"categoria": conteudo})
     return SimpleNamespace(
         chat=SimpleNamespace(
             completions=SimpleNamespace(
@@ -174,7 +175,7 @@ def campos(comando):
 def testar_log_upstash(client, log, upstash):
     from datetime import datetime
 
-    with patch.object(app, "OpenAI", return_value=resposta_fake("Tarefa.")):
+    with patch.object(app, "OpenAI", return_value=resposta_fake("tarefa")):
         chamar(client, "Comprar pão")
     pedido = upstash.pedidos[-1]
     assert (
@@ -270,7 +271,7 @@ def correr(log):
         assert tool["inputSchema"]["required"] == ["texto"]
         assert "categoria" in tool["outputSchema"]["properties"]
 
-        with patch.object(app, "OpenAI", return_value=resposta_fake("Tarefa.")):
+        with patch.object(app, "OpenAI", return_value=resposta_fake("tarefa")):
             r = chamar(client, "Comprar pão")
             assert not r.get("isError") and r["structuredContent"] == {
                 "categoria": "tarefa"

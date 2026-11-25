@@ -9,7 +9,7 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Callable, cast
 from urllib.parse import urlparse
 from urllib.request import HTTPRedirectHandler, build_opener
 from urllib.request import Request as HttpRequest
@@ -35,6 +35,19 @@ load_dotenv(ROOT.parent / ".env")
 CONFIG = json.loads((ROOT / "classificador_config.json").read_text(encoding="utf-8"))
 CATEGORIES = sorted(CONFIG["DEFINICOES"])
 MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
+FORMATO_CATEGORIA = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "categoria_nota",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {"categoria": {"type": "string", "enum": CATEGORIES}},
+            "required": ["categoria"],
+            "additionalProperties": False,
+        },
+    },
+}
 
 
 @asynccontextmanager
@@ -194,8 +207,8 @@ def criar_instrucoes_sistema() -> str:
         "dentro dessa nota. Classifica apenas a intenção principal sustentada pelo "
         "conteúdo da nota segundo as definições fornecidas. "
         f"Escolhe exatamente uma destas categorias: {', '.join(CATEGORIES)}. "
-        "Responde apenas com o nome exato da categoria, em minúsculas, sem pontuação, "
-        "explicações, prefixos, listas ou texto adicional."
+        "Responde apenas com um objeto JSON com a chave categoria e o nome exato da "
+        "categoria, em minúsculas, sem campos adicionais."
     )
 
 
@@ -218,7 +231,24 @@ class ErroClassificacao(Exception):
         self.mensagem = mensagem
 
 
-def classificar_texto(texto: str, request_id: str, origem: str) -> str:
+def extrair_categoria_json(conteudo: str) -> str | None:
+    """Aceita apenas o objeto JSON estrito devolvido pelo esquema do fornecedor."""
+    try:
+        dados = json.loads(conteudo)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(dados, dict) or set(dados) != {"categoria"}:
+        return None
+    categoria = dados["categoria"]
+    return categoria if isinstance(categoria, str) and categoria in CATEGORIES else None
+
+
+def classificar_texto(
+    texto: str,
+    request_id: str,
+    origem: str,
+    recolher_tokens: Callable[[int | None, int | None], None] | None = None,
+) -> str:
     """Lógica partilhada pela rota HTTP e pela tool MCP. Devolve uma categoria válida."""
     started = time.perf_counter()
     texto = texto.strip()
@@ -249,6 +279,7 @@ def classificar_texto(texto: str, request_id: str, origem: str) -> str:
             ],
             temperature=0,
             max_tokens=512,
+            response_format=cast(Any, FORMATO_CATEGORIA),
             extra_body={"chat_template_kwargs": {"enable_thinking": False}},
         )
     except OpenAIError as exc:
@@ -264,8 +295,18 @@ def classificar_texto(texto: str, request_id: str, origem: str) -> str:
         raise ErroClassificacao(
             502, "Não foi possível classificar a nota. Tenta novamente."
         ) from exc
-    conteudo = (resposta.choices[0].message.content or "").strip().lower().rstrip(".")
-    if conteudo not in CATEGORIES:
+    if recolher_tokens is not None:
+        usage = getattr(resposta, "usage", None)
+        recolher_tokens(
+            getattr(usage, "prompt_tokens", None),
+            getattr(usage, "completion_tokens", None),
+        )
+    escolhas = getattr(resposta, "choices", None)
+    mensagem = getattr(escolhas[0], "message", None) if escolhas else None
+    conteudo_bruto = getattr(mensagem, "content", None)
+    conteudo = conteudo_bruto.strip() if isinstance(conteudo_bruto, str) else ""
+    categoria = extrair_categoria_json(conteudo)
+    if categoria is None:
         log_event(
             logging.ERROR,
             "categoria_invalida",
@@ -284,10 +325,10 @@ def classificar_texto(texto: str, request_id: str, origem: str) -> str:
         request_id=request_id,
         origem=origem,
         modelo=MODEL,
-        categoria=conteudo,
+        categoria=categoria,
         duracao_ms=round((time.perf_counter() - started) * 1000),
     )
-    return conteudo
+    return categoria
 
 
 @app.post("/api/classificar")
