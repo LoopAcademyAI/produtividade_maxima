@@ -10,6 +10,67 @@ Baseline do golden da equipa: ainda não disponível. A tentativa de executar as
 
 A avaliação real usa uma chave autorizada para testes locais, não a credencial do projeto Vercel. As etiquetas e distribuição de categorias foram verificadas contra o CSV fornecido pela equipa. Testes offline: `uv run python test_r44.py`.
 
+## R4.2 — acordo entre cinco classificações
+
+`avaliar_acordo.py` classifica cada uma das 34 notas de `golden.json` cinco vezes com o mesmo modelo, prompt e schema da aplicação. Para permitir variação entre votos, usa `temperature=0.8`, como no Lab 7; a classificação normal da aplicação continua em `temperature=0`. A categoria votada é a moda única dos cinco votos. O acordo é a frequência dessa categoria dividida por cinco; um empate na moda fica sem categoria votada e conta como não resolvido. A correção compara a categoria votada com a etiqueta do golden.
+
+Executar em `app_notas/` com `NVIDIA_API_KEY` configurada:
+
+```bash
+uv run python avaliar_acordo.py
+uv run python avaliar_acordo.py --apenas-relatorio
+uv run python test_r42.py
+```
+
+A avaliação completa faz 170 pedidos reais à NVIDIA, com o custo e os limites de pedidos associados à conta usada. O primeiro comando grava cada voto válido em `.r42-votos.json`, ignorado pelo Git; se surgir HTTP 429, volta a executar o mesmo comando para retomar. O segundo comando gera o relatório sem chamar a API quando os 170 votos estão completos. O resultado versionado em `../eval/r42_resultados.json` inclui as categorias dos votos e parâmetros da experiência, sem textos das notas nem chaves. Os testes são offline.
+
+Resultado de 25 de novembro de 2026 no golden oficial (SHA-256 do JSON canónico `aca0a2ed81f871c893f18b457376ff930954335b623ab160489d0dc76771a9c1`): 26/34 categorias votadas corretas (76,5%). A tabela usa o número da nota na ordem de `golden.json`; não reproduz os textos.
+
+| Nota | Esperado | Votos | Votada | Acordo | Acertou? |
+| ---: | --- | --- | --- | ---: | --- |
+| 1 | preocupações | preocupações×5 | preocupações | 5/5 (100%) | sim |
+| 2 | social | social×5 | social | 5/5 (100%) | sim |
+| 3 | trabalho | tarefa×5 | tarefa | 5/5 (100%) | não |
+| 4 | tarefa | tarefa×5 | tarefa | 5/5 (100%) | sim |
+| 5 | preocupações | preocupações×5 | preocupações | 5/5 (100%) | sim |
+| 6 | foco | foco×4, tarefa×1 | foco | 4/5 (80%) | sim |
+| 7 | tarefa | tarefa×5 | tarefa | 5/5 (100%) | sim |
+| 8 | aprendizagem | agenda×5 | agenda | 5/5 (100%) | não |
+| 9 | ideia | ideia×5 | ideia | 5/5 (100%) | sim |
+| 10 | aprendizagem | aprendizagem×5 | aprendizagem | 5/5 (100%) | sim |
+| 11 | tarefa | tarefa×5 | tarefa | 5/5 (100%) | sim |
+| 12 | outros | ideia×5 | ideia | 5/5 (100%) | não |
+| 13 | foco | tarefa×5 | tarefa | 5/5 (100%) | não |
+| 14 | agenda | agenda×5 | agenda | 5/5 (100%) | sim |
+| 15 | agenda | agenda×5 | agenda | 5/5 (100%) | sim |
+| 16 | aprendizagem | aprendizagem×5 | aprendizagem | 5/5 (100%) | sim |
+| 17 | pessoal | pessoal×5 | pessoal | 5/5 (100%) | sim |
+| 18 | outros | outros×5 | outros | 5/5 (100%) | sim |
+| 19 | agenda | agenda×5 | agenda | 5/5 (100%) | sim |
+| 20 | aprendizagem | tarefa×5 | tarefa | 5/5 (100%) | não |
+| 21 | social | pessoal×1, social×4 | social | 4/5 (80%) | sim |
+| 22 | ideia | ideia×5 | ideia | 5/5 (100%) | sim |
+| 23 | trabalho | trabalho×5 | trabalho | 5/5 (100%) | sim |
+| 24 | aprendizagem | aprendizagem×5 | aprendizagem | 5/5 (100%) | sim |
+| 25 | tarefa | tarefa×5 | tarefa | 5/5 (100%) | sim |
+| 26 | foco | foco×5 | foco | 5/5 (100%) | sim |
+| 27 | ideia | ideia×5 | ideia | 5/5 (100%) | sim |
+| 28 | pessoal | tarefa×5 | tarefa | 5/5 (100%) | não |
+| 29 | tarefa | agenda×2, tarefa×3 | tarefa | 3/5 (60%) | sim |
+| 30 | social | social×5 | social | 5/5 (100%) | sim |
+| 31 | aprendizagem | aprendizagem×5 | aprendizagem | 5/5 (100%) | sim |
+| 32 | preocupações | outros×4, preocupações×1 | outros | 4/5 (80%) | não |
+| 33 | ideia | ideia×5 | ideia | 5/5 (100%) | sim |
+| 34 | trabalho | tarefa×5 | tarefa | 5/5 (100%) | não |
+
+| Acordo | Certas | Erradas | Empates |
+| ---: | ---: | ---: | ---: |
+| 3/5 (60%) | 1 | 0 | 0 |
+| 4/5 (80%) | 2 | 1 | 0 |
+| 5/5 (100%) | 23 | 7 | 0 |
+
+**Decisão:** o acordo não separa as notas certas das erradas neste golden. Houve 30 notas com acordo de 5/5: 23 certas e 7 erradas. Nas quatro com acordo inferior a 5/5, três estavam certas e uma errada. Enviar para revisão apenas as notas com acordo inferior a 5/5 detetaria 1 dos 8 erros e deixaria passar 7. Por isso, não há um limiar de acordo justificável para dispensar revisão; este resultado não autoriza usar o acordo como confiança na aplicação. A repetição do mesmo prompt/modelo pode reproduzir sistematicamente um erro, e o golden de 34 notas é pequeno para validar um limiar operacional. Mantemos a classificação de produção inalterada e não ativamos encaminhamento automático por acordo.
+
 Aplicação FastAPI que classifica uma nota com a melhor configuração concluída no spike: Nemotron Ultra, prompt P2, definições e exemplos. As notas são guardadas no servidor (Postgres em produção, SQLite em local): ver [BASE_DE_DADOS.md](BASE_DE_DADOS.md) para o porquê desta escolha e o que ainda falta (contas). O texto é enviado à NVIDIA para classificação.
 
 ## Executar localmente
