@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field
 from starlette.datastructures import Headers
 
 import db
+from agenda_evento import extrair_evento_agenda
 from agente import ChamadaFerramenta, RespostaModelo, executar_agente
 from mcp_server import mcp, mcp_app
 
@@ -374,7 +375,19 @@ def criar_nota(
         categoria = classificar_texto(texto, request.state.request_id, origem="http")
     except ErroClassificacao as exc:
         raise HTTPException(status_code=exc.status, detail=exc.mensagem) from exc
-    guardada = db.criar(utilizador, texto, categoria)
+    quando = None
+    if categoria == "agenda":
+        resultado_agenda = extrair_evento_agenda(texto)
+        quando = resultado_agenda.quando
+        if resultado_agenda.estado not in {"ok", "sem_data"}:
+            log_event(
+                logging.WARNING,
+                "extracao_agenda_sem_resultado",
+                request_id=request.state.request_id,
+                estado=resultado_agenda.estado,
+                modelo=MODEL,
+            )
+    guardada = db.criar(utilizador, texto, categoria, quando=quando)
     log_event(
         logging.INFO,
         "nota_guardada",

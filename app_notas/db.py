@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS notas (
     utilizador TEXT NOT NULL,
     texto TEXT NOT NULL,
     categoria TEXT NOT NULL,
-    criada_em TEXT NOT NULL
+    criada_em TEXT NOT NULL,
+    quando TEXT
 )"""
 INDICE = "CREATE INDEX IF NOT EXISTS notas_utilizador ON notas (utilizador, criada_em)"
 
@@ -50,6 +51,17 @@ def ligacao():
         cur = conn.cursor()
         cur.execute(ESQUEMA)
         cur.execute(INDICE)
+        if url:
+            cur.execute("ALTER TABLE notas ADD COLUMN IF NOT EXISTS quando TEXT")
+        else:
+            # A tabela pode ser anterior a R2.2. Bloquear e voltar a verificar
+            # evita que dois pedidos SQLite tentem migrar ao mesmo tempo.
+            colunas = {row[1] for row in cur.execute("PRAGMA table_info(notas)")}
+            if "quando" not in colunas:
+                cur.execute("BEGIN IMMEDIATE")
+                colunas = {row[1] for row in cur.execute("PRAGMA table_info(notas)")}
+                if "quando" not in colunas:
+                    cur.execute("ALTER TABLE notas ADD COLUMN quando TEXT")
 
         def sql(query, params=()):
             cur.execute(query.replace("?", marcador), params)
@@ -62,7 +74,7 @@ def ligacao():
 
 
 def _linha(row):
-    keys = ("id", "utilizador", "texto", "categoria", "criada_em")
+    keys = ("id", "utilizador", "texto", "categoria", "criada_em", "quando")
     return (
         dict(zip(keys, row))
         if not isinstance(row, sqlite3.Row)
@@ -70,30 +82,32 @@ def _linha(row):
     )
 
 
-def criar(utilizador, texto, categoria, criada_em=None, id=None):
+def criar(utilizador, texto, categoria, criada_em=None, id=None, quando=None):
     nota = {
         "id": id or str(uuid.uuid4()),
         "utilizador": utilizador,
         "texto": texto,
         "categoria": categoria,
         "criada_em": criada_em or datetime.now(timezone.utc).isoformat(),
+        "quando": quando,
     }
     with ligacao() as sql:
         sql(
-            "INSERT INTO notas (id, utilizador, texto, categoria, criada_em) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO notas (id, utilizador, texto, categoria, criada_em, quando) VALUES (?, ?, ?, ?, ?, ?)",
             (
                 nota["id"],
                 nota["utilizador"],
                 nota["texto"],
                 nota["categoria"],
                 nota["criada_em"],
+                nota["quando"],
             ),
         )
     return nota
 
 
 def listar(utilizador, categoria=None, procura=None, limite=200):
-    query = "SELECT id, utilizador, texto, categoria, criada_em FROM notas WHERE utilizador = ?"
+    query = "SELECT id, utilizador, texto, categoria, criada_em, quando FROM notas WHERE utilizador = ?"
     params = [utilizador]
     if categoria:
         query += " AND categoria = ?"
