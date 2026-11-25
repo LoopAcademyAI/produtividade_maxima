@@ -1,4 +1,4 @@
-"""Avalia o classificador da aplicação num golden sintético."""
+"""Avalia o classificador da aplicação no golden da equipa."""
 
 import argparse
 import json
@@ -89,7 +89,7 @@ def avaliar(notas: list[dict[str, str]], corridas: int) -> None:
     else:
         print("Tokens médios: indisponíveis")
     print(f"Falhas de classificação: {falhas}")
-    print("Erros no golden sintético (corrida, nota, esperado, obtido):")
+    print("Erros no golden (corrida, nota, esperado, obtido):")
     for corrida, numero, texto, esperado, obtido in erros:
         print(f"{corrida}, {numero}: {texto} | {esperado} | {obtido}")
     if falhas or len(entradas) != len(latencias):
