@@ -24,7 +24,7 @@ uv run python test_r42.py
 
 A avaliação completa faz 170 pedidos reais à NVIDIA, com o custo e os limites de pedidos associados à conta usada. O primeiro comando grava cada voto válido em `.r42-votos.json`, ignorado pelo Git; se surgir HTTP 429, volta a executar o mesmo comando para retomar. O segundo comando gera o relatório sem chamar a API quando os 170 votos estão completos. O resultado versionado em `../eval/r42_resultados.json` inclui as categorias dos votos e parâmetros da experiência, sem textos das notas nem chaves. Os testes são offline.
 
-Resultado de 25 de novembro de 2026 no golden oficial (SHA-256 `508f3ed4d05b88898f7f3bd45a7ab1a74e96dcc8faa19e09430f6cfce3f203ad`): 26/34 categorias votadas corretas (76,5%). A tabela usa o número da nota na ordem de `golden.json`; não reproduz os textos.
+Resultado de 25 de novembro de 2026 no golden oficial (SHA-256 do JSON canónico `aca0a2ed81f871c893f18b457376ff930954335b623ab160489d0dc76771a9c1`): 26/34 categorias votadas corretas (76,5%). A tabela usa o número da nota na ordem de `golden.json`; não reproduz os textos.
 
 | Nota | Esperado | Votos | Votada | Acordo | Acertou? |
 | ---: | --- | --- | --- | ---: | --- |

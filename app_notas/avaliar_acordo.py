@@ -13,13 +13,21 @@ from typing import Any, Callable
 from openai import OpenAI, OpenAIError, RateLimitError
 
 import app
-from avaliar import GOLDEN, carregar_golden
+from avaliar import carregar_golden
 
 ROOT = Path(__file__).resolve().parent
 ESTADO = ROOT / ".r42-votos.json"
 RESULTADOS = ROOT.parent / "eval" / "r42_resultados.json"
 TEMPERATURA = 0.8
 NUM_VOTOS = 5
+
+
+def digest_golden(notas: list[dict[str, str]]) -> str:
+    """Identifica o conteúdo do golden sem depender de CRLF/LF do checkout."""
+    canonico = json.dumps(
+        notas, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
+    return hashlib.sha256(canonico.encode("utf-8")).hexdigest()
 
 
 def novo_estado(notas: list[dict[str, str]], digest: str) -> dict[str, Any]:
@@ -166,7 +174,7 @@ def main() -> int:
         if args.intervalo < 0:
             raise ValueError("O intervalo não pode ser negativo.")
         notas = carregar_golden()
-        digest = hashlib.sha256(GOLDEN.read_bytes()).hexdigest()
+        digest = digest_golden(notas)
         origem = (
             RESULTADOS
             if args.apenas_relatorio and not args.estado.exists()

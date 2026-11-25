@@ -1,5 +1,5 @@
 {
-  "golden_sha256": "508f3ed4d05b88898f7f3bd45a7ab1a74e96dcc8faa19e09430f6cfce3f203ad",
+  "golden_sha256": "aca0a2ed81f871c893f18b457376ff930954335b623ab160489d0dc76771a9c1",
   "modelo": "nvidia/nemotron-3-ultra-550b-a55b",
   "temperatura": 0.8,
   "votos_por_nota": 5,

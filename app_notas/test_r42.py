@@ -20,6 +20,7 @@ from avaliar_acordo import (
     apurar,
     carregar_estado,
     classificar_amostra,
+    digest_golden,
     novo_estado,
     recolher_votos,
     relatorio,
@@ -110,6 +111,13 @@ class TestarAcordo(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "incompatível"):
                 carregar_estado(caminho, self.notas, "novo")
+
+    def test_digest_do_golden_independe_de_lf_ou_crlf(self) -> None:
+        texto = json.dumps(self.notas, ensure_ascii=False, indent=2) + "\n"
+        self.assertEqual(
+            digest_golden(json.loads(texto)),
+            digest_golden(json.loads(texto.replace("\n", "\r\n"))),
+        )
 
     def test_chamada_usa_prompt_schema_modelo_e_temperatura(self) -> None:
         class ClienteFalso:
