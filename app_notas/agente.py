@@ -2,6 +2,7 @@
 
 import json
 import operator
+from datetime import datetime, timezone
 from typing import Annotated, Any, Callable, TypedDict
 
 from langchain_core.runnables import RunnableLambda
@@ -56,6 +57,8 @@ class AtualizacaoEstadoAgente(TypedDict, total=False):
 
 
 ModeloAgente = Callable[[list[ChatCompletionMessageParam]], RespostaModelo]
+# (nome, args) -> conteúdo da mensagem 'tool'. O app.py liga-o ao utilizador do pedido.
+ExecutorFerramenta = Callable[[str, dict[str, Any]], str]
 
 
 def limitar_historico(
@@ -69,12 +72,30 @@ def limitar_historico(
     return [*sistema, *historico]
 
 
+def com_data_de_hoje(
+    mensagens: list[ChatCompletionMessageParam],
+) -> list[ChatCompletionMessageParam]:
+    """Junta a data de hoje à mensagem de sistema enviada ao modelo.
+
+    Não fica guardada na memória da conversa, onde ficaria desatualizada no dia seguinte.
+    """
+    hoje = f" Hoje é {datetime.now(timezone.utc).date().isoformat()} (UTC)."
+    if not mensagens or mensagens[0].get("role") != "system":
+        return [{"role": "system", "content": hoje.strip()}, *mensagens]
+    sistema: ChatCompletionMessageParam = {
+        "role": "system",
+        "content": f"{mensagens[0].get('content', '')}{hoje}",
+    }
+    return [sistema, *mensagens[1:]]
+
+
 def executar_agente(
     mensagem: str,
     conversa: str,
     thread_id: str,
     chamar_modelo: ModeloAgente,
     checkpointer: BaseCheckpointSaver,
+    executar_ferramenta: ExecutorFerramenta | None = None,
 ) -> dict[str, Any]:
     """Executa ou retoma o grafo persistido para esta conversa."""
 
@@ -85,7 +106,11 @@ def executar_agente(
             novas_mensagens.append(
                 {
                     "role": "system",
-                    "content": "Responde em português. Usa ferramentas apenas quando necessário.",
+                    "content": (
+                        "Responde em português. Usa ferramentas apenas quando necessário. "
+                        "Sobre as notas do utilizador, responde só com o que as "
+                        "ferramentas devolverem."
+                    ),
                 }
             )
         novas_mensagens.append({"role": "user", "content": estado["mensagem_atual"]})
@@ -98,7 +123,9 @@ def executar_agente(
         }
 
     def chamar_modelo_no(estado: EstadoAgente) -> AtualizacaoEstadoAgente:
-        resultado = chamar_modelo(limitar_historico(estado.get("mensagens", [])))
+        resultado = chamar_modelo(
+            com_data_de_hoje(limitar_historico(estado.get("mensagens", [])))
+        )
         chamadas = resultado["chamadas"]
         mensagem_assistente: ChatCompletionAssistantMessageParam = {
             "role": "assistant",
@@ -134,7 +161,10 @@ def executar_agente(
                 {
                     "role": "tool",
                     "tool_call_id": chamada["id"],
-                    "content": RESPOSTA_FERRAMENTA_INDISPONIVEL,
+                    # O utilizador vem do pedido (X-Utilizador), nunca dos argumentos do modelo.
+                    "content": executar_ferramenta(chamada["nome"], chamada["args"])
+                    if executar_ferramenta
+                    else RESPOSTA_FERRAMENTA_INDISPONIVEL,
                 }
                 for chamada in estado["chamadas_pendentes"]
             ],

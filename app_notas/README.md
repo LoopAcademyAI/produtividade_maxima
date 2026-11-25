@@ -163,7 +163,7 @@ uv run python avaliar.py --corridas 3
 
 ## R2.4a — ferramentas `listar_notas` e `procurar_notas`
 
-As duas funções estão em `ferramentas.py` e leem as notas através de `db.listar`. Ainda não estão ligadas ao agente; isso fica para a R2.4b.
+As duas funções estão em `ferramentas.py` e leem as notas através de `db.listar`. A ligação ao agente está descrita na secção R2.4b.
 
 - `listar_notas(utilizador, categoria=None, desde=None, ate=None)`: as notas do utilizador, das mais recentes para as mais antigas.
 - `procurar_notas(utilizador, texto, categoria=None, desde=None, ate=None)`: as notas que contêm o texto, sem distinguir maiúsculas. Não é procura semântica.
@@ -184,3 +184,38 @@ uv run python test_ferramentas.py
 ```
 
 Os testes verificam os filtros por categoria, texto e datas, e o isolamento. Fazem as mesmas perguntas como outro utilizador e como um utilizador novo e confirmam que nenhum dos dois vê notas do primeiro. Verificam ainda os erros de argumentos.
+
+## R2.4b — o agente usa `listar_notas` e `procurar_notas`
+
+O `POST /api/agente` passou a oferecer ao modelo as duas ferramentas da R2.4a, em vez da ferramenta temporária da R2.1. Quando o modelo pede uma delas, o nó de ferramentas do grafo executa-a e devolve-lhe o resultado. Por exemplo:
+
+- "O que tenho para fazer?" → `listar_notas` com `categoria: "tarefa"`;
+- "Tenho alguma coisa com a Sofia?" → `procurar_notas` com `texto: "Sofia"`.
+
+O campo `ferramentas` da resposta mostra que ferramentas foram chamadas e com que argumentos.
+
+Decisões:
+
+- **O utilizador vem do pedido (`X-Utilizador`), nunca dos argumentos do modelo.** O `app.py` passa ao agente uma função de ferramentas já ligada ao utilizador do pedido, e por isso o utilizador não fica guardado na memória da conversa (R1.4). `ferramentas.executar` recusa argumentos fora do esquema, como `utilizador`. Assim, nem um prompt injection numa nota consegue pedir notas de outra pessoa.
+- **Os erros voltam ao modelo como texto** (categoria desconhecida, data inválida, ferramenta inexistente), para ele poder corrigir o pedido. O pedido HTTP não falha por isso.
+- **O `agente.py` não conhece a base de dados:** recebe a função `executar_ferramenta(nome, args)` por parâmetro. Sem ela, mantém o comportamento da R2.1 ("ferramenta indisponível").
+- **O modelo recebe a data de hoje (UTC)**, para conseguir preencher `desde`/`ate` em pedidos como "esta semana". A data é juntada à mensagem de sistema em cada chamada ao modelo e não fica na memória da conversa, onde estaria desatualizada no dia seguinte. A mensagem de sistema pede também que o modelo responda só com o que as ferramentas devolverem.
+- **As ferramentas são só de leitura.** Criar, alterar ou apagar notas fica para tickets próprios (R2.5 e R3).
+
+Testes sem rede nem chaves (modelo simulado, SQLite temporário com as 34 notas do `golden.json`):
+
+```bash
+uv run python test_r24b.py
+```
+
+Verificam as duas perguntas de aceitação (as 5 tarefas e nenhuma nota de outra categoria; a nota da Sofia), o campo `ferramentas`, o isolamento (outro utilizador não vê nenhuma nota do primeiro, mesmo que o modelo tente passar `utilizador`), os erros de argumentos e que os logs não têm texto de notas nem identificadores.
+
+Avaliação com o modelo real (requer rede e `NVIDIA_API_KEY`; usa um SQLite temporário e imprime só resultados, nunca o texto das notas):
+
+```bash
+uv run python avaliar_r24b.py --corridas 3
+```
+
+Resultado em 2026-11-25: todos os critérios passaram em 3/3 corridas.
+
+Os testes novos retiram `DATABASE_URL` **depois** de `import app`, porque o `app.py` volta a carregar o `.env`, e param se ainda houver ligação a Postgres. Se as retirassem antes do import, um `.env` local com a base de dados de produção faria os testes escrever lá.
