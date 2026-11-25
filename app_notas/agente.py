@@ -2,6 +2,7 @@
 
 import json
 import operator
+from datetime import datetime, timezone
 from typing import Annotated, Any, Callable, TypedDict
 
 from langchain_core.runnables import RunnableLambda
@@ -52,6 +53,8 @@ class AtualizacaoEstadoAgente(TypedDict, total=False):
 
 
 ModeloAgente = Callable[[list[ChatCompletionMessageParam]], RespostaModelo]
+# (nome, utilizador, args) -> conteúdo da mensagem 'tool'.
+ExecutorFerramenta = Callable[[str, str, dict[str, Any]], str]
 
 
 def executar_agente(
@@ -59,6 +62,7 @@ def executar_agente(
     utilizador: str,
     conversa: str,
     chamar_modelo: ModeloAgente,
+    executar_ferramenta: ExecutorFerramenta | None = None,
 ) -> dict[str, Any]:
     """Executa o grafo sem persistir estado entre pedidos."""
 
@@ -98,7 +102,12 @@ def executar_agente(
                 {
                     "role": "tool",
                     "tool_call_id": chamada["id"],
-                    "content": RESPOSTA_FERRAMENTA_INDISPONIVEL,
+                    # O utilizador vem do estado (X-Utilizador), nunca dos argumentos do modelo.
+                    "content": executar_ferramenta(
+                        chamada["nome"], estado["utilizador"], chamada["args"]
+                    )
+                    if executar_ferramenta
+                    else RESPOSTA_FERRAMENTA_INDISPONIVEL,
                 }
                 for chamada in estado["chamadas_pendentes"]
             ],
@@ -135,7 +144,12 @@ def executar_agente(
         "mensagens": [
             {
                 "role": "system",
-                "content": "Responde em português. Usa ferramentas apenas quando necessário.",
+                "content": (
+                    "Responde em português. Usa ferramentas apenas quando necessário. "
+                    "Sobre as notas do utilizador, responde só com o que as ferramentas "
+                    "devolverem. Hoje é "
+                    f"{datetime.now(timezone.utc).date().isoformat()} (UTC)."
+                ),
             },
             {"role": "user", "content": mensagem},
         ],
