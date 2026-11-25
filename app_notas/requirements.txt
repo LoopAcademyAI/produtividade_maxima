@@ -1,3 +1,5 @@
+aiosqlite==0.22.1
+    # via langgraph-checkpoint-sqlite
 annotated-doc==0.0.7
     # via fastapi
 annotated-types==0.8.0
@@ -89,7 +91,13 @@ langgraph==1.2.24
 langgraph-checkpoint==4.3.2
     # via
     #   langgraph
+    #   langgraph-checkpoint-postgres
+    #   langgraph-checkpoint-sqlite
     #   langgraph-prebuilt
+langgraph-checkpoint-postgres==3.2.1
+    # via entrelinhas-notas
+langgraph-checkpoint-sqlite==3.1.3
+    # via entrelinhas-notas
 langgraph-prebuilt==1.1.3
     # via langgraph
 langgraph-sdk==0.4.14
@@ -108,6 +116,7 @@ opentelemetry-api==1.45.2
     #   mcp
 orjson==3.13.0
     # via
+    #   langgraph-checkpoint-postgres
     #   langgraph-sdk
     #   langsmith
 ormsgpack==1.13.1
@@ -117,9 +126,15 @@ packaging==26.4
     #   langchain-core
     #   langsmith
 psycopg==3.3.9
-    # via entrelinhas-notas
+    # via
+    #   entrelinhas-notas
+    #   langgraph-checkpoint-postgres
 psycopg-binary==3.3.9 ; implementation_name != 'pypy'
     # via psycopg
+psycopg-pool==3.3.3
+    # via
+    #   langgraph-checkpoint-postgres
+    #   psycopg
 pycparser==3.12 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
     # via cffi
 pydantic==2.14.4
@@ -161,6 +176,8 @@ sniffio==1.3.1
     # via
     #   langsmith
     #   openai
+sqlite-vec==0.1.9
+    # via langgraph-checkpoint-sqlite
 sse-starlette==3.7.1
     # via mcp
 starlette==1.10.0
@@ -189,6 +206,7 @@ typing-extensions==4.16.0
     #   openai
     #   opentelemetry-api
     #   psycopg
+    #   psycopg-pool
     #   pydantic
     #   pydantic-core
     #   referencing

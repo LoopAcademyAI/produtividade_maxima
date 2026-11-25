@@ -29,6 +29,7 @@ import db
 from agenda_evento import extrair_evento_agenda
 from agente import ChamadaFerramenta, RespostaModelo, executar_agente
 from mcp_server import mcp, mcp_app
+from memoria import abrir_checkpointer, criar_thread_id
 
 ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT / ".env")
@@ -53,9 +54,11 @@ FORMATO_CATEGORIA = {
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    # O FastAPI não corre o lifespan de sub-apps montadas; o gestor MCP tem de arrancar aqui.
-    async with mcp_app.ciclo_de_vida():
-        yield
+    with abrir_checkpointer() as checkpointer:
+        _app.state.agent_checkpointer = checkpointer
+        # O FastAPI não corre o lifespan de sub-apps montadas; o gestor MCP tem de arrancar aqui.
+        async with mcp_app.ciclo_de_vida():
+            yield
 
 
 app = FastAPI(title="Entrelinhas", version="1.0.0", lifespan=lifespan)
@@ -536,15 +539,17 @@ def agente(
     utilizador = validar_utilizador(x_utilizador)
 
     conversa = pedido.conversa if pedido.conversa is not None else uuid.uuid4().hex
+    thread_id = criar_thread_id(utilizador, conversa)
 
     def modelo(mensagens: list[ChatCompletionMessageParam]) -> RespostaModelo:
         return chamar_modelo_agente(mensagens, request.state.request_id)
 
     return executar_agente(
         mensagem=pedido.mensagem,
-        utilizador=utilizador,
         conversa=conversa,
+        thread_id=thread_id,
         chamar_modelo=modelo,
+        checkpointer=request.app.state.agent_checkpointer,
     )
 
 
