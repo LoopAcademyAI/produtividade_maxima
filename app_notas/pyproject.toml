@@ -31,5 +31,5 @@ select = ["E4", "E7", "E9", "F", "I"]
 
 [tool.mypy]
 python_version = "3.11"
-files = ["app.py", "mcp_server.py"]
+files = ["app.py", "mcp_server.py", "ferramentas.py"]
 check_untyped_defs = true

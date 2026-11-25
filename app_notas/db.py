@@ -106,7 +106,11 @@ def criar(utilizador, texto, categoria, criada_em=None, id=None, quando=None):
     return nota
 
 
-def listar(utilizador, categoria=None, procura=None, limite=200):
+def listar(
+    utilizador, categoria=None, procura=None, limite=200, desde=None, antes_de=None
+):
+    """desde (inclusivo) e antes_de (exclusivo) são datas ISO; criada_em é texto ISO em UTC,
+    por isso a comparação de texto respeita a ordem cronológica."""
     query = "SELECT id, utilizador, texto, categoria, criada_em, quando FROM notas WHERE utilizador = ?"
     params = [utilizador]
     if categoria:
@@ -115,6 +119,12 @@ def listar(utilizador, categoria=None, procura=None, limite=200):
     if procura:
         query += " AND LOWER(texto) LIKE ?"
         params.append(f"%{procura.lower()}%")
+    if desde:
+        query += " AND criada_em >= ?"
+        params.append(desde)
+    if antes_de:
+        query += " AND criada_em < ?"
+        params.append(antes_de)
     query += " ORDER BY criada_em DESC LIMIT ?"
     params.append(limite)
     with ligacao() as sql:
