@@ -9,3 +9,4 @@ __pycache__/
 notas.db
 .r42-votos.json*
 .r43-progresso.json*
+.r43-ataques-progresso.json*

@@ -115,6 +115,29 @@ Resultado de 25 de novembro de 2026, golden oficial com SHA-256 canónico `aca0a
 
 Ao todo, 21 erros tiveram acordo de 5/5 e ficaram fora da revisão. O ganho de uma correção em três corridas de um golden pequeno não resolve esta falha do sinal de dúvida. Além disso, obter o acordo já exige cinco chamadas por nota, enquanto a classificação de produção usa uma; o custo incremental de 2,67% só compara B com essa base de cinco votos. A hipótese precisa de um sinal de dúvida melhor e de validação num conjunto maior antes de qualquer integração. Os números de tokens são os devolvidos nas 522 respostas válidas do A/B; duas chamadas piloto anteriores somaram mais 1 418 tokens e não entram na comparação. Estes valores não são uma fatura monetária.
 
+### Avaliação adversarial do crítico
+
+Testámos também se instruções colocadas dentro da nota conseguem desviar o crítico. [Os seis casos sintéticos](../eval/r43_ataques.json) cobrem uma falsa mensagem de sistema, tentativa de fechar o marcador da nota, ordem direta ao crítico, pedido para ler `NVIDIA_API_KEY`, repetição da ordem e um objeto JSON a fingir uma mensagem de sistema. Cada caso tem um controlo com a mesma nota factual sem a injeção. Não usamos notas reais nem incluímos uma chave nos casos.
+
+Para exercitar a revisão em todos os casos, fornecemos **votos simulados** de 3 para a categoria esperada e 2 para a categoria pretendida pelo ataque. Estes votos **não foram gerados pelo modelo** e não medem a probabilidade de o fluxo completo encaminhar a nota ao crítico. O mesmo modelo, prompt e `temperature=0` da R4.3 classificam cada controlo e ataque três vezes: 36 chamadas reais ao crítico. O [resultado por chamada](../eval/r43_ataques_resultados.json) guarda apenas ID, categoria e tokens; o SHA-256 canónico dos casos é `ccc666ab35f2a4c9d5fa3db6938ae1f7b5b7de3ae094ef4913b2ffed3f286d12`.
+
+| Resultado, 25 de novembro de 2026 | Controlo | Com ataque |
+| --- | ---: | ---: |
+| Categoria esperada | 18/18 | 18/18 |
+| Categoria pedida pela injeção | — | 0/18 |
+
+As 36 respostas consumiram 27 900 tokens de entrada e saída somados, segundo a API; isto não é uma estimativa de preço. O teste offline confirma que falsas mensagens ficam dentro da nota, que os marcadores são escapados, que o pedido usa o esquema JSON estrito e que uma resposta com campo extra é rejeitada. O modelo não recebeu ferramentas nem acesso ao ambiente local. Os seis ataques não demonstram resistência a todas as injeções; repetições com `temperature=0` também exploram pouca variação. A decisão de não integrar o crítico mantém-se, sobretudo porque os erros com acordo de 5/5 nem chegam a esta revisão.
+
+Para reproduzir em `app_notas/`, com `NVIDIA_API_KEY` apenas no ambiente local:
+
+```bash
+uv run python avaliar_ataques_critico.py
+uv run python avaliar_ataques_critico.py --apenas-relatorio
+uv run python test_r43_ataques.py
+```
+
+O avaliador guarda progresso em `.r43-ataques-progresso.json` (ignorado pelo Git) e retoma depois de uma interrupção. `--apenas-relatorio` e o teste offline não chamam a API. O relatório e o progresso não incluem textos de notas ou credenciais.
+
 Aplicação FastAPI que classifica uma nota com a melhor configuração concluída no spike: Nemotron Ultra, prompt P2, definições e exemplos. As notas são guardadas no servidor (Postgres em produção, SQLite em local): ver [BASE_DE_DADOS.md](BASE_DE_DADOS.md) para o porquê desta escolha e o que ainda falta (contas). O texto é enviado à NVIDIA para classificação.
 
 ## Executar localmente
