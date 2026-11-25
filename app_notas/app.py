@@ -9,7 +9,7 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Callable
 from urllib.parse import urlparse
 from urllib.request import HTTPRedirectHandler, build_opener
 from urllib.request import Request as HttpRequest
@@ -218,7 +218,12 @@ class ErroClassificacao(Exception):
         self.mensagem = mensagem
 
 
-def classificar_texto(texto: str, request_id: str, origem: str) -> str:
+def classificar_texto(
+    texto: str,
+    request_id: str,
+    origem: str,
+    recolher_tokens: Callable[[int | None, int | None], None] | None = None,
+) -> str:
     """Lógica partilhada pela rota HTTP e pela tool MCP. Devolve uma categoria válida."""
     started = time.perf_counter()
     texto = texto.strip()
@@ -264,6 +269,12 @@ def classificar_texto(texto: str, request_id: str, origem: str) -> str:
         raise ErroClassificacao(
             502, "Não foi possível classificar a nota. Tenta novamente."
         ) from exc
+    if recolher_tokens is not None:
+        usage = getattr(resposta, "usage", None)
+        recolher_tokens(
+            getattr(usage, "prompt_tokens", None),
+            getattr(usage, "completion_tokens", None),
+        )
     conteudo = (resposta.choices[0].message.content or "").strip().lower().rstrip(".")
     if conteudo not in CATEGORIES:
         log_event(
