@@ -10,6 +10,14 @@ Baseline do golden da equipa: ainda não disponível. A tentativa de executar as
 
 A avaliação real usa uma chave autorizada para testes locais, não a credencial do projeto Vercel. As etiquetas e distribuição de categorias foram verificadas contra o CSV fornecido pela equipa. Testes offline: `uv run python test_r44.py`.
 
+## R7.1 — dados sintéticos revistos
+
+O ficheiro `eval/r71_dados_sinteticos.jsonl` contém 200 notas artificiais, 20 para cada categoria definida em `classificador_config.json`. São exemplos inventados para esta tarefa; não foram copiados de notas de utilizadores nem do golden oficial. Cada linha tem apenas `texto` e `categoria`. O conjunto é separado de `golden.json`, que continua a ser a referência da R4.4.
+
+Revisei manualmente duas notas de cada categoria (as primeiras duas de cada grupo, 20 no total). Verifiquei se a intenção principal do texto corresponde à definição da categoria, usando as definições existentes em `classificador_config.json`, e se há indícios de uma segunda categoria igualmente plausível. Resultado: **0 etiquetas incorretas em 20 notas revistas**; não foi necessário corrigir etiquetas. Esta revisão é uma verificação de consistência do conjunto sintético e não substitui a revisão do PR pela outra equipa.
+
+Para validar a quantidade, a distribuição equilibrada, as etiquetas configuradas, os campos e a ausência de textos repetidos, executa `uv run python test_r71.py` em `app_notas/`. O teste não usa chave nem rede.
+
 Aplicação FastAPI que classifica uma nota com a melhor configuração concluída no spike: Nemotron Ultra, prompt P2, definições e exemplos. As notas são guardadas no servidor (Postgres em produção, SQLite em local): ver [BASE_DE_DADOS.md](BASE_DE_DADOS.md) para o porquê desta escolha e o que ainda falta (contas). O texto é enviado à NVIDIA para classificação.
 
 ## Executar localmente
