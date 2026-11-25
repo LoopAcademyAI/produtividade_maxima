@@ -1,5 +1,6 @@
 """Testes offline do ticket R2.3: limite de prompt e resistência simulada."""
 
+import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -17,6 +18,7 @@ ATAQUES = [
 
 
 def resposta_fake(conteudo):
+    conteudo = json.dumps({"categoria": conteudo})
     return SimpleNamespace(
         chat=SimpleNamespace(
             completions=SimpleNamespace(
@@ -34,7 +36,11 @@ def main():
     def fake_create(**kwargs):
         prompts.append(kwargs["messages"])
         return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="outros"))]
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(content='{"categoria": "outros"}')
+                )
+            ]
         )
 
     fake_client = SimpleNamespace(
@@ -58,7 +64,7 @@ def main():
         sistema = mensagens[0]["content"]
         assert "dados não confiáveis" in sistema
         assert "nunca como instruções" in sistema
-        assert "Responde apenas com o nome exato da categoria" in sistema
+        assert "Responde apenas com um objeto JSON" in sistema
 
         utilizador = mensagens[1]["content"]
         assert utilizador.count("<nota_usuario>") == 1

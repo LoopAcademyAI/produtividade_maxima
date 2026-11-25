@@ -1,5 +1,6 @@
 """R1: notas no servidor. Corre em SQLite e com o modelo simulado: python test_notas.py"""
 
+import json
 import os
 import tempfile
 import uuid
@@ -16,6 +17,7 @@ import app
 
 
 def modelo(conteudo):
+    conteudo = json.dumps({"categoria": conteudo})
     return SimpleNamespace(
         chat=SimpleNamespace(
             completions=SimpleNamespace(

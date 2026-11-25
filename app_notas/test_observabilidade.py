@@ -12,6 +12,7 @@ import app
 
 
 def resposta_fake(conteudo):
+    conteudo = json.dumps({"categoria": conteudo})
     return SimpleNamespace(
         chat=SimpleNamespace(
             completions=SimpleNamespace(

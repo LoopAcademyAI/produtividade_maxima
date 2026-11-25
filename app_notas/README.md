@@ -122,3 +122,19 @@ Esta alteração mantém o isolamento por utilizador via `X-Utilizador`: o siste
 rejeita pedidos sem um UUID válido, separa as notas por utilizador e impede apagar
 notas de outro utilizador. A autenticação por contas continua fora deste ticket.
 Nenhuma nota, chave ou conteúdo pessoal é incluído pelos eventos de log existentes.
+
+## R4.1 — resposta JSON validada
+
+O pedido de classificação usa `response_format` com um JSON Schema estrito: a resposta só pode ser um objeto com a chave `categoria`, cujo valor tem de pertencer às categorias configuradas. A aplicação volta a validar o conteúdo recebido, porque uma resposta do fornecedor pode falhar o contrato. Nesse caso devolve HTTP 502, regista `categoria_invalida` sem guardar o texto da nota e não cria nem altera dados.
+
+Para verificar este comportamento sem chave nem rede:
+
+```bash
+uv run python test_r41.py
+```
+
+Para confirmar que a alteração não baixou o resultado do golden de R4.4, executar a avaliação real com a chave NVIDIA configurada:
+
+```bash
+uv run python avaliar.py --corridas 3
+```
