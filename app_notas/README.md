@@ -334,7 +334,7 @@ uv run python test_r25.py
 uv run python run_tests.py
 ```
 
-O teste cobre proposta sem ativação, nomes inválidos e repetidos, reinício da aplicação, aprovação, rejeição, isolamento, esquema do classificador por utilizador e logs sem texto de notas, identificadores ou nomes de categorias pessoais. O modelo é simulado. Para avaliar a escolha da ferramenta pelo modelo real com dados sintéticos:
+O teste cobre proposta sem ativação, nomes inválidos e repetidos, reinício da aplicação, aprovação, rejeição, isolamento, esquema do classificador por utilizador e logs sem texto de notas, identificadores ou nomes de categorias pessoais. Inclui tentativas de injeção SQL no nome e no ID, HTML no nome, caracteres invisíveis, argumentos malformados e uma chamada a uma ferramenta de aprovação inexistente; estes casos são recusados sem ativar a categoria. O modelo é simulado. Para avaliar a escolha da ferramenta pelo modelo real com dados sintéticos:
 
 ```bash
 uv run python avaliar_r25.py
