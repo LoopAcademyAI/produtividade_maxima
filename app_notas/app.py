@@ -560,6 +560,15 @@ def agente(
     utilizador = validar_utilizador(x_utilizador)
 
     conversa = pedido.conversa if pedido.conversa is not None else uuid.uuid4().hex
+    if ferramentas.pedido_revisao_semanal(pedido.mensagem):
+        revisao = ferramentas.gerar_revisao_semanal(utilizador)
+        return {
+            "resposta": revisao["resposta"],
+            "conversa": conversa,
+            "ferramentas": [{"nome": "revisao_semanal", "args": {}}],
+            "pendente": None,
+        }
+
     thread_id = criar_thread_id(utilizador, conversa)
 
     def modelo(mensagens: list[ChatCompletionMessageParam]) -> RespostaModelo:

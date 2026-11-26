@@ -307,3 +307,20 @@ uv run python avaliar_r24b.py --corridas 3
 Resultado em 2026-11-25: todos os critérios passaram em 3/3 corridas.
 
 Os testes novos retiram `DATABASE_URL` **depois** de `import app`, porque o `app.py` volta a carregar o `.env`, e param se ainda houver ligação a Postgres. Se as retirassem antes do import, um `.env` local com a base de dados de produção faria os testes escrever lá.
+
+## R5 — revisão semanal
+
+Ao pedir uma revisão da semana no agente, a resposta apresenta sempre as secções
+**Tarefas**, **Agenda** e **Preocupações**, nessa ordem. Cada item inclui o ID da nota
+e o respetivo texto; cada secção sem notas informa que está vazia. Se não houver notas
+em nenhuma das três categorias, a resposta também diz explicitamente que não encontrou
+notas para a semana.
+
+A semana é a semana de calendário de segunda-feira a domingo em UTC, conforme as datas
+usadas pelas ferramentas existentes. A seleção usa a data de criação da nota, não o
+campo `quando` da agenda. A revisão é montada deterministicamente no servidor a partir
+de consultas filtradas pelo `X-Utilizador`; não depende do modelo para gerar secções ou
+IDs, evitando referências inventadas ou notas de outra pessoa.
+
+Teste offline: `uv run python test_r5.py`. O teste simula pedidos sem rede nem chave e
+verifica as secções, a ordem, os limites da semana, os IDs existentes e o isolamento.
