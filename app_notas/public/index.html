@@ -117,6 +117,74 @@ form.addEventListener('submit', async event => {
   finally { submit.disabled = false; submit.textContent = 'Adicionar nota  +'; }
 });
 
+// Pedidos ao agente e aprovação explícita de categorias pessoais (R2.5).
+const painelCategorias = document.createElement('section');
+painelCategorias.className = 'panel';
+painelCategorias.style.cssText = 'margin:32px 0 0;padding:28px;max-width:600px';
+const tituloCategorias = document.createElement('h2');
+tituloCategorias.textContent = 'As tuas categorias';
+tituloCategorias.style.cssText = 'font-size:20px;margin:0 0 10px';
+const ajudaCategorias = document.createElement('p');
+ajudaCategorias.textContent = 'Pede ao agente, por exemplo: “Cria a categoria compras”. Confirma antes de a usar nas notas.';
+ajudaCategorias.style.cssText = 'color:var(--muted);font-size:14px;line-height:1.5';
+const listaAprovadas = document.createElement('p');
+listaAprovadas.style.cssText = 'font-size:14px;color:var(--green)';
+const formCategorias = document.createElement('form');
+const entradaCategorias = document.createElement('input');
+entradaCategorias.type = 'text'; entradaCategorias.required = true;
+entradaCategorias.placeholder = 'Cria a categoria compras';
+entradaCategorias.setAttribute('aria-label', 'Pedido ao agente para criar categoria');
+entradaCategorias.style.cssText = 'width:100%;padding:13px;border:1px solid var(--line);border-radius:10px';
+const enviarCategorias = document.createElement('button');
+enviarCategorias.type = 'submit'; enviarCategorias.className = 'primary';
+enviarCategorias.textContent = 'Pedir nova categoria';
+enviarCategorias.style.marginTop = '12px';
+const estadoCategorias = document.createElement('p');
+estadoCategorias.setAttribute('role', 'status');
+estadoCategorias.style.cssText = 'font-size:14px;line-height:1.5';
+const listaPendentes = document.createElement('div');
+formCategorias.append(entradaCategorias, enviarCategorias);
+painelCategorias.append(tituloCategorias, ajudaCategorias, listaAprovadas, formCategorias, estadoCategorias, listaPendentes);
+document.querySelector('main').append(painelCategorias);
+
+async function mostrarCategorias() {
+  const dados = await api('/api/categorias');
+  listaAprovadas.textContent = dados.personalizadas.length
+    ? 'Categorias aprovadas: ' + dados.personalizadas.join(', ')
+    : 'Ainda não tens categorias pessoais aprovadas.';
+  listaPendentes.replaceChildren();
+  for (const proposta of dados.pendentes) {
+    const linha = document.createElement('div');
+    linha.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--line)';
+    const nome = document.createElement('strong'); nome.textContent = proposta.nome + ' — aguarda aprovação';
+    const aprovar = document.createElement('button'); aprovar.type = 'button'; aprovar.textContent = 'Aprovar';
+    const rejeitar = document.createElement('button'); rejeitar.type = 'button'; rejeitar.textContent = 'Rejeitar';
+    for (const [botao, acao] of [[aprovar, 'aprovar'], [rejeitar, 'rejeitar']]) {
+      botao.onclick = async () => {
+        aprovar.disabled = true; rejeitar.disabled = true;
+        try {
+          await api('/api/categorias/' + encodeURIComponent(proposta.id) + '/' + acao, {method: 'POST'});
+          estadoCategorias.textContent = acao === 'aprovar' ? 'Categoria aprovada.' : 'Proposta rejeitada.';
+          await mostrarCategorias();
+        } catch (e) { estadoCategorias.textContent = e.message; aprovar.disabled = false; rejeitar.disabled = false; }
+      };
+    }
+    linha.append(nome, aprovar, rejeitar); listaPendentes.append(linha);
+  }
+}
+
+formCategorias.addEventListener('submit', async event => {
+  event.preventDefault(); enviarCategorias.disabled = true;
+  estadoCategorias.textContent = 'A consultar o agente...';
+  try {
+    const resultado = await api('/api/agente', {method: 'POST', body: JSON.stringify({mensagem: entradaCategorias.value.trim()})});
+    estadoCategorias.textContent = resultado.resposta;
+    if (resultado.pendente) entradaCategorias.value = '';
+    await mostrarCategorias();
+  } catch (e) { estadoCategorias.textContent = e.message; }
+  finally { enviarCategorias.disabled = false; }
+});
+
 (async () => {
   try {
     await importarAntigas();
@@ -126,5 +194,6 @@ form.addEventListener('submit', async event => {
   }
   catch (e) { error.textContent = e.message; }
   render();
+  try { await mostrarCategorias(); } catch (e) { estadoCategorias.textContent = e.message; }
 })();
 </script></body></html>

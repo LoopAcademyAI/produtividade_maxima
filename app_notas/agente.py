@@ -113,7 +113,9 @@ def executar_agente(
                         "lista as notas e usa propor_alteracoes_categoria para sugerir "
                         "mudanças. Essa ferramenta só cria propostas pendentes; nunca "
                         "alteres notas diretamente. Cada proposta precisa de aprovação "
-                        "individual explícita antes de ser gravada."
+                        "individual explícita antes de ser gravada. Quando pedirem uma "
+                        "categoria nova, usa criar_categoria para a propor; só a pessoa "
+                        "a pode aprovar."
                     ),
                 }
             )
