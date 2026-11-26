@@ -78,6 +78,42 @@ O ficheiro `eval/r71_dados_sinteticos.jsonl` contém 200 notas artificiais, 20 p
 Revisei manualmente duas notas de cada categoria (as primeiras duas de cada grupo, 20 no total). Verifiquei se a intenção principal do texto corresponde à definição da categoria, usando as definições existentes em `classificador_config.json`, e se há indícios de uma segunda categoria igualmente plausível. Resultado: **0 etiquetas incorretas em 20 notas revistas**; não foi necessário corrigir etiquetas. Esta revisão é uma verificação de consistência do conjunto sintético e não substitui a revisão do PR pela outra equipa.
 
 Para validar a quantidade, a distribuição equilibrada, as etiquetas configuradas, os campos e a ausência de textos repetidos, executa `uv run python test_r71.py` em `app_notas/`. O teste não usa chave nem rede.
+## R4.3 — crítico só quando há dúvida
+
+O A/B é uma experiência isolada no mesmo golden oficial de 34 notas, com três corridas independentes. Em cada corrida, **A** usa a categoria modal de cinco votos (`temperature=0.8`, como R4.2). **B** usa exatamente esses votos e acrescenta uma única chamada de revisão ao mesmo modelo (`temperature=0`) quando o acordo é inferior a 5/5. O crítico recebe a nota, a categoria candidata e a distribuição dos votos, mas nunca a etiqueta correta do golden. Num empate, A fica sem categoria; B pode pedir a revisão. A medição é emparelhada porque A e B partilham os mesmos cinco votos de cada nota.
+
+Esta regra de dúvida é uma hipótese a testar, não um limiar aprovado para produção: na R4.2, sete erros tiveram acordo de 5/5. O crítico tem no máximo uma chamada por nota duvidosa, evitando ciclos sem limite. O custo de A já inclui os cinco votos por nota; o custo de B inclui os mesmos votos mais as chamadas do crítico. A aplicação em produção continua a classificar cada nota com uma única chamada a `temperature=0`.
+
+Para executar em `app_notas/`, com `NVIDIA_API_KEY` no ambiente local:
+
+```bash
+uv run python avaliar_critico.py
+uv run python avaliar_critico.py --apenas-relatorio
+uv run python test_r43.py
+```
+
+São pelo menos 510 chamadas reais para os votos nas três corridas, mais as revisões condicionais. O script guarda cada voto e os tokens de entrada e saída devolvidos pela API em `.r43-progresso.json` (ignorado pelo Git), para retomar após HTTP 429; o relatório completo fica em `../eval/r43_resultados.json`. Nenhum destes ficheiros ou dos logs inclui texto das notas ou chaves. `--apenas-relatorio` e `test_r43.py` não chamam a API.
+
+Resultado de 25 de novembro de 2026, golden oficial com SHA-256 canónico `aca0a2ed81f871c893f18b457376ff930954335b623ab160489d0dc76771a9c1`:
+
+| Corrida | A acertos | B acertos | Crítico chamado | Mudanças | Corrigidos | Prejudicados | Erros 5/5 | A tokens (entrada+saída) | B tokens (entrada+saída) |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 26/34 | 26/34 | 3 | 0 | 0 | 0 | 7 | 112140+1626 | 114386+1655 |
+| 2 | 25/34 | 26/34 | 6 | 1 | 1 | 0 | 6 | 112140+1625 | 116642+1681 |
+| 3 | 25/34 | 25/34 | 3 | 0 | 0 | 0 | 8 | 112140+1621 | 114384+1651 |
+
+- A: acerto 74.51 ± 1.39%; tokens 113764.00 ± 2.16 por corrida.
+- B: acerto 75.49 ± 1.39%; tokens 116799.67 ± 1077.16 por corrida.
+- Diferença B−A: 0.98 ± 1.39 pontos percentuais.
+- Custo adicional do crítico: 3035.67 ± 1076.45 tokens por corrida; 9107 tokens nas três corridas.
+- Chamadas ao crítico: 12 nas três corridas.
+- Mudanças de categoria pelo crítico: 1.
+- Erros com acordo 5/5 (fora da revisão): 21.
+- Desvio padrão populacional; tokens fornecidos pela API (entrada e saída).
+
+**Decisão: não integrar o crítico condicional na aplicação.** Nas 102 classificações das três corridas, B corrigiu uma nota e não prejudicou nenhuma: passou de 74,51% ± 1,39% para 75,49% ± 1,39%, uma diferença de 0,98 ± 1,39 pontos percentuais. O crítico recebeu 12 notas, alterou uma categoria e consumiu mais 9 107 tokens que A (2,67% sobre os 341 292 tokens dos cinco votos). A única correção foi a nota 3 na corrida 2: quatro votos escolheram `tarefa`, um escolheu `trabalho` e o crítico escolheu `trabalho`, a etiqueta do golden. Nas corridas 1 e 3, a mesma nota recebeu cinco votos em `tarefa`, sem chegar ao crítico.
+
+Ao todo, 21 erros tiveram acordo de 5/5 e ficaram fora da revisão. O ganho de uma correção em três corridas de um golden pequeno não resolve esta falha do sinal de dúvida. Além disso, obter o acordo já exige cinco chamadas por nota, enquanto a classificação de produção usa uma; o custo incremental de 2,67% só compara B com essa base de cinco votos. A hipótese precisa de um sinal de dúvida melhor e de validação num conjunto maior antes de qualquer integração. Os números de tokens são os devolvidos nas 522 respostas válidas do A/B; duas chamadas piloto anteriores somaram mais 1 418 tokens e não entram na comparação. Estes valores não são uma fatura monetária.
 
 Aplicação FastAPI que classifica uma nota com a melhor configuração concluída no spike: Nemotron Ultra, prompt P2, definições e exemplos. As notas são guardadas no servidor (Postgres em produção, SQLite em local): ver [BASE_DE_DADOS.md](BASE_DE_DADOS.md) para o porquê desta escolha e o que ainda falta (contas). O texto é enviado à NVIDIA para classificação.
 

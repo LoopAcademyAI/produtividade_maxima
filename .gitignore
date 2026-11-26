@@ -8,3 +8,4 @@ __pycache__/
 .DS_Store
 notas.db
 .r42-votos.json*
+.r43-progresso.json*
