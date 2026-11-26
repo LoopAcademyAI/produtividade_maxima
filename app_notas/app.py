@@ -227,6 +227,11 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/api/versao")
+def versao():
+    return {"commit": os.environ.get("APP_COMMIT_SHA", "unknown")[:7]}
+
+
 class ErroClassificacao(Exception):
     """Falha prevista da classificação; `status` é o código HTTP equivalente."""
 

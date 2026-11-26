@@ -87,6 +87,12 @@ A chave é carregada de `app_notas/.env`, do `.env` da pasta-mãe ou das variáv
 
 Definir `app_notas` como diretório raiz do projeto, selecionar FastAPI e configurar `NVIDIA_API_KEY` como variável de ambiente no projeto Vercel antes do deploy. Não colocar a chave no repositório. As notas ficam numa base Neon Postgres ligada ao projeto Vercel (ver BASE_DE_DADOS.md).
 
+### Deploy automático de produção
+
+O workflow de GitHub Actions executa as verificações e os testes do CI em cada push. Só quando todos passam num push à `main`, o workflow publica em produção através da Vercel CLI. O endpoint `/api/versao` devolve os primeiros 7 caracteres do SHA publicado.
+
+Configurar os secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID` nas definições do repositório GitHub. Não guardar esses valores no código. Para evitar deploys duplicados ou previews fora deste workflow, desligar a integração Git do projeto em **Vercel → Project Settings → Git**; a publicação passa a ser feita apenas pela CLI do workflow.
+
 Para entregar a aplicação a outro grupo, seguir [GUIA_PARTILHA_E_DEPLOY.md](GUIA_PARTILHA_E_DEPLOY.md). O guia explica como usarem as credenciais deles, fazerem deploy e ligarem o Grafana sem receberem segredos deste projeto.
 
 ## Logs e observabilidade
