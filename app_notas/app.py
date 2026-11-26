@@ -434,6 +434,43 @@ def importar_notas(
     return {"importadas": len(novas), "ignoradas": len(notas) - len(novas)}
 
 
+@app.get("/api/propostas/pendentes")
+def listar_propostas_pendentes(
+    x_utilizador: str | None = Header(default=None),
+):
+    utilizador = validar_utilizador(x_utilizador)
+    return db.listar_propostas_categoria(utilizador)
+
+
+@app.post("/api/propostas/{proposta_id}/aprovar")
+def aprovar_proposta(proposta_id: str, x_utilizador: str | None = Header(default=None)):
+    utilizador = validar_utilizador(x_utilizador)
+    try:
+        resultado = db.aprovar_proposta_categoria(utilizador, proposta_id)
+    except db.PropostaDesatualizada as exc:
+        raise HTTPException(
+            status_code=409,
+            detail="A nota mudou ou foi apagada desde a proposta. Atualiza as propostas.",
+        ) from exc
+    if resultado == "nao_encontrada":
+        raise HTTPException(status_code=404, detail="Proposta não encontrada.")
+    if resultado == "ja_resolvida":
+        raise HTTPException(status_code=409, detail="A proposta já foi resolvida.")
+    return resultado
+
+
+@app.post("/api/propostas/{proposta_id}/rejeitar", status_code=204)
+def rejeitar_proposta(
+    proposta_id: str, x_utilizador: str | None = Header(default=None)
+):
+    utilizador = validar_utilizador(x_utilizador)
+    resultado = db.rejeitar_proposta_categoria(utilizador, proposta_id)
+    if resultado == "nao_encontrada":
+        raise HTTPException(status_code=404, detail="Proposta não encontrada.")
+    if resultado == "ja_resolvida":
+        raise HTTPException(status_code=409, detail="A proposta já foi resolvida.")
+
+
 FERRAMENTAS_AGENTE = cast(list[ChatCompletionToolParam], ferramentas.ESQUEMAS)
 
 
@@ -528,16 +565,34 @@ def agente(
     def modelo(mensagens: list[ChatCompletionMessageParam]) -> RespostaModelo:
         return chamar_modelo_agente(mensagens, request.state.request_id)
 
-    return executar_agente(
+    propostas_pendentes: list[dict[str, Any]] = []
+
+    def executar_ferramenta(nome: str, args: dict[str, Any]) -> str:
+        resultado = ferramentas.executar(nome, utilizador, args)
+        if nome == "propor_alteracoes_categoria":
+            try:
+                dados = json.loads(resultado)
+            except json.JSONDecodeError:
+                return resultado
+            propostas = dados.get("propostas") if isinstance(dados, dict) else None
+            if isinstance(propostas, list):
+                propostas_pendentes.extend(propostas)
+        return resultado
+
+    resultado = executar_agente(
         mensagem=pedido.mensagem,
         conversa=conversa,
         thread_id=thread_id,
         chamar_modelo=modelo,
         checkpointer=request.app.state.agent_checkpointer,
-        executar_ferramenta=lambda nome, args: ferramentas.executar(
-            nome, utilizador, args
-        ),
+        executar_ferramenta=executar_ferramenta,
     )
+    if propostas_pendentes:
+        resultado["pendente"] = {
+            "propostas": propostas_pendentes,
+            "total": len(propostas_pendentes),
+        }
+    return resultado
 
 
 CHAVE_LOG_MCP = "entrelinhas:mcp:chamadas"
