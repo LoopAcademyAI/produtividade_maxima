@@ -71,6 +71,14 @@ Resultado de 25 de novembro de 2026 no golden oficial (SHA-256 do JSON canónico
 
 **Decisão:** o acordo não separa as notas certas das erradas neste golden. Houve 30 notas com acordo de 5/5: 23 certas e 7 erradas. Nas quatro com acordo inferior a 5/5, três estavam certas e uma errada. Enviar para revisão apenas as notas com acordo inferior a 5/5 detetaria 1 dos 8 erros e deixaria passar 7. Por isso, não há um limiar de acordo justificável para dispensar revisão; este resultado não autoriza usar o acordo como confiança na aplicação. A repetição do mesmo prompt/modelo pode reproduzir sistematicamente um erro, e o golden de 34 notas é pequeno para validar um limiar operacional. Mantemos a classificação de produção inalterada e não ativamos encaminhamento automático por acordo.
 
+## R7.1 — dados sintéticos revistos
+
+O ficheiro `eval/r71_dados_sinteticos.jsonl` contém 200 notas artificiais, 20 para cada categoria definida em `classificador_config.json`. São exemplos inventados para esta tarefa; não foram copiados de notas de utilizadores nem do golden oficial. Cada linha tem apenas `texto` e `categoria`. O conjunto é separado de `golden.json`, que continua a ser a referência da R4.4.
+
+Revisei manualmente duas notas de cada categoria (as primeiras duas de cada grupo, 20 no total). Verifiquei se a intenção principal do texto corresponde à definição da categoria, usando as definições existentes em `classificador_config.json`, e se há indícios de uma segunda categoria igualmente plausível. Resultado: **0 etiquetas incorretas em 20 notas revistas**; não foi necessário corrigir etiquetas. Esta revisão é uma verificação de consistência do conjunto sintético e não substitui a revisão do PR pela outra equipa.
+
+Para validar a quantidade, a distribuição equilibrada, as etiquetas configuradas, os campos e a ausência de textos repetidos, executa `uv run python test_r71.py` em `app_notas/`. O teste não usa chave nem rede.
+
 Aplicação FastAPI que classifica uma nota com a melhor configuração concluída no spike: Nemotron Ultra, prompt P2, definições e exemplos. As notas são guardadas no servidor (Postgres em produção, SQLite em local): ver [BASE_DE_DADOS.md](BASE_DE_DADOS.md) para o porquê desta escolha e o que ainda falta (contas). O texto é enviado à NVIDIA para classificação.
 
 ## Executar localmente
