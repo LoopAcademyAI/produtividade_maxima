@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field
 from starlette.datastructures import Headers
 
 import db
+import ferramentas
 from agenda_evento import extrair_evento_agenda
 from agente import ChamadaFerramenta, RespostaModelo, executar_agente
 from mcp_server import mcp, mcp_app
@@ -433,31 +434,14 @@ def importar_notas(
     return {"importadas": len(novas), "ignoradas": len(notas) - len(novas)}
 
 
-FERRAMENTAS_AGENTE: list[ChatCompletionToolParam] = [
-    {
-        "type": "function",
-        "function": {
-            "name": "ferramenta_em_desenvolvimento",
-            "description": "Ferramenta temporária; não executa ações nem altera notas.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "operacao": {"type": "string"},
-                    "argumentos": {"type": "object"},
-                },
-                "required": ["operacao", "argumentos"],
-                "additionalProperties": False,
-            },
-        },
-    }
-]
+FERRAMENTAS_AGENTE = cast(list[ChatCompletionToolParam], ferramentas.ESQUEMAS)
 
 
 def chamar_modelo_agente(
     mensagens: list[ChatCompletionMessageParam],
     request_id: str,
 ) -> RespostaModelo:
-    """Chama o modelo com uma ferramenta placeholder, sem executar operações reais."""
+    """Chama o modelo com as ferramentas de leitura de notas (R2.4)."""
     key = os.environ.get("NVIDIA_API_KEY")
     if not key:
         log_event(
@@ -550,6 +534,9 @@ def agente(
         thread_id=thread_id,
         chamar_modelo=modelo,
         checkpointer=request.app.state.agent_checkpointer,
+        executar_ferramenta=lambda nome, args: ferramentas.executar(
+            nome, utilizador, args
+        ),
     )
 
 

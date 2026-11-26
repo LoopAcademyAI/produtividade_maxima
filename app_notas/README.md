@@ -10,6 +10,67 @@ Baseline do golden da equipa: ainda não disponível. A tentativa de executar as
 
 A avaliação real usa uma chave autorizada para testes locais, não a credencial do projeto Vercel. As etiquetas e distribuição de categorias foram verificadas contra o CSV fornecido pela equipa. Testes offline: `uv run python test_r44.py`.
 
+## R4.2 — acordo entre cinco classificações
+
+`avaliar_acordo.py` classifica cada uma das 34 notas de `golden.json` cinco vezes com o mesmo modelo, prompt e schema da aplicação. Para permitir variação entre votos, usa `temperature=0.8`, como no Lab 7; a classificação normal da aplicação continua em `temperature=0`. A categoria votada é a moda única dos cinco votos. O acordo é a frequência dessa categoria dividida por cinco; um empate na moda fica sem categoria votada e conta como não resolvido. A correção compara a categoria votada com a etiqueta do golden.
+
+Executar em `app_notas/` com `NVIDIA_API_KEY` configurada:
+
+```bash
+uv run python avaliar_acordo.py
+uv run python avaliar_acordo.py --apenas-relatorio
+uv run python test_r42.py
+```
+
+A avaliação completa faz 170 pedidos reais à NVIDIA, com o custo e os limites de pedidos associados à conta usada. O primeiro comando grava cada voto válido em `.r42-votos.json`, ignorado pelo Git; se surgir HTTP 429, volta a executar o mesmo comando para retomar. O segundo comando gera o relatório sem chamar a API quando os 170 votos estão completos. O resultado versionado em `../eval/r42_resultados.json` inclui as categorias dos votos e parâmetros da experiência, sem textos das notas nem chaves. Os testes são offline.
+
+Resultado de 25 de novembro de 2026 no golden oficial (SHA-256 do JSON canónico `aca0a2ed81f871c893f18b457376ff930954335b623ab160489d0dc76771a9c1`): 26/34 categorias votadas corretas (76,5%). A tabela usa o número da nota na ordem de `golden.json`; não reproduz os textos.
+
+| Nota | Esperado | Votos | Votada | Acordo | Acertou? |
+| ---: | --- | --- | --- | ---: | --- |
+| 1 | preocupações | preocupações×5 | preocupações | 5/5 (100%) | sim |
+| 2 | social | social×5 | social | 5/5 (100%) | sim |
+| 3 | trabalho | tarefa×5 | tarefa | 5/5 (100%) | não |
+| 4 | tarefa | tarefa×5 | tarefa | 5/5 (100%) | sim |
+| 5 | preocupações | preocupações×5 | preocupações | 5/5 (100%) | sim |
+| 6 | foco | foco×4, tarefa×1 | foco | 4/5 (80%) | sim |
+| 7 | tarefa | tarefa×5 | tarefa | 5/5 (100%) | sim |
+| 8 | aprendizagem | agenda×5 | agenda | 5/5 (100%) | não |
+| 9 | ideia | ideia×5 | ideia | 5/5 (100%) | sim |
+| 10 | aprendizagem | aprendizagem×5 | aprendizagem | 5/5 (100%) | sim |
+| 11 | tarefa | tarefa×5 | tarefa | 5/5 (100%) | sim |
+| 12 | outros | ideia×5 | ideia | 5/5 (100%) | não |
+| 13 | foco | tarefa×5 | tarefa | 5/5 (100%) | não |
+| 14 | agenda | agenda×5 | agenda | 5/5 (100%) | sim |
+| 15 | agenda | agenda×5 | agenda | 5/5 (100%) | sim |
+| 16 | aprendizagem | aprendizagem×5 | aprendizagem | 5/5 (100%) | sim |
+| 17 | pessoal | pessoal×5 | pessoal | 5/5 (100%) | sim |
+| 18 | outros | outros×5 | outros | 5/5 (100%) | sim |
+| 19 | agenda | agenda×5 | agenda | 5/5 (100%) | sim |
+| 20 | aprendizagem | tarefa×5 | tarefa | 5/5 (100%) | não |
+| 21 | social | pessoal×1, social×4 | social | 4/5 (80%) | sim |
+| 22 | ideia | ideia×5 | ideia | 5/5 (100%) | sim |
+| 23 | trabalho | trabalho×5 | trabalho | 5/5 (100%) | sim |
+| 24 | aprendizagem | aprendizagem×5 | aprendizagem | 5/5 (100%) | sim |
+| 25 | tarefa | tarefa×5 | tarefa | 5/5 (100%) | sim |
+| 26 | foco | foco×5 | foco | 5/5 (100%) | sim |
+| 27 | ideia | ideia×5 | ideia | 5/5 (100%) | sim |
+| 28 | pessoal | tarefa×5 | tarefa | 5/5 (100%) | não |
+| 29 | tarefa | agenda×2, tarefa×3 | tarefa | 3/5 (60%) | sim |
+| 30 | social | social×5 | social | 5/5 (100%) | sim |
+| 31 | aprendizagem | aprendizagem×5 | aprendizagem | 5/5 (100%) | sim |
+| 32 | preocupações | outros×4, preocupações×1 | outros | 4/5 (80%) | não |
+| 33 | ideia | ideia×5 | ideia | 5/5 (100%) | sim |
+| 34 | trabalho | tarefa×5 | tarefa | 5/5 (100%) | não |
+
+| Acordo | Certas | Erradas | Empates |
+| ---: | ---: | ---: | ---: |
+| 3/5 (60%) | 1 | 0 | 0 |
+| 4/5 (80%) | 2 | 1 | 0 |
+| 5/5 (100%) | 23 | 7 | 0 |
+
+**Decisão:** o acordo não separa as notas certas das erradas neste golden. Houve 30 notas com acordo de 5/5: 23 certas e 7 erradas. Nas quatro com acordo inferior a 5/5, três estavam certas e uma errada. Enviar para revisão apenas as notas com acordo inferior a 5/5 detetaria 1 dos 8 erros e deixaria passar 7. Por isso, não há um limiar de acordo justificável para dispensar revisão; este resultado não autoriza usar o acordo como confiança na aplicação. A repetição do mesmo prompt/modelo pode reproduzir sistematicamente um erro, e o golden de 34 notas é pequeno para validar um limiar operacional. Mantemos a classificação de produção inalterada e não ativamos encaminhamento automático por acordo.
+
 ## R7.1 — dados sintéticos revistos
 
 O ficheiro `eval/r71_dados_sinteticos.jsonl` contém 200 notas artificiais, 20 para cada categoria definida em `classificador_config.json`. São exemplos inventados para esta tarefa; não foram copiados de notas de utilizadores nem do golden oficial. Cada linha tem apenas `texto` e `categoria`. O conjunto é separado de `golden.json`, que continua a ser a referência da R4.4.
@@ -171,7 +232,7 @@ uv run python avaliar.py --corridas 3
 
 ## R2.4a — ferramentas `listar_notas` e `procurar_notas`
 
-As duas funções estão em `ferramentas.py` e leem as notas através de `db.listar`. Ainda não estão ligadas ao agente; isso fica para a R2.4b.
+As duas funções estão em `ferramentas.py` e leem as notas através de `db.listar`. A ligação ao agente está descrita na secção R2.4b.
 
 - `listar_notas(utilizador, categoria=None, desde=None, ate=None)`: as notas do utilizador, das mais recentes para as mais antigas.
 - `procurar_notas(utilizador, texto, categoria=None, desde=None, ate=None)`: as notas que contêm o texto, sem distinguir maiúsculas. Não é procura semântica.
@@ -192,3 +253,38 @@ uv run python test_ferramentas.py
 ```
 
 Os testes verificam os filtros por categoria, texto e datas, e o isolamento. Fazem as mesmas perguntas como outro utilizador e como um utilizador novo e confirmam que nenhum dos dois vê notas do primeiro. Verificam ainda os erros de argumentos.
+
+## R2.4b — o agente usa `listar_notas` e `procurar_notas`
+
+O `POST /api/agente` passou a oferecer ao modelo as duas ferramentas da R2.4a, em vez da ferramenta temporária da R2.1. Quando o modelo pede uma delas, o nó de ferramentas do grafo executa-a e devolve-lhe o resultado. Por exemplo:
+
+- "O que tenho para fazer?" → `listar_notas` com `categoria: "tarefa"`;
+- "Tenho alguma coisa com a Sofia?" → `procurar_notas` com `texto: "Sofia"`.
+
+O campo `ferramentas` da resposta mostra que ferramentas foram chamadas e com que argumentos.
+
+Decisões:
+
+- **O utilizador vem do pedido (`X-Utilizador`), nunca dos argumentos do modelo.** O `app.py` passa ao agente uma função de ferramentas já ligada ao utilizador do pedido, e por isso o utilizador não fica guardado na memória da conversa (R1.4). `ferramentas.executar` recusa argumentos fora do esquema, como `utilizador`. Assim, nem um prompt injection numa nota consegue pedir notas de outra pessoa.
+- **Os erros voltam ao modelo como texto** (categoria desconhecida, data inválida, ferramenta inexistente), para ele poder corrigir o pedido. O pedido HTTP não falha por isso.
+- **O `agente.py` não conhece a base de dados:** recebe a função `executar_ferramenta(nome, args)` por parâmetro. Sem ela, mantém o comportamento da R2.1 ("ferramenta indisponível").
+- **O modelo recebe a data de hoje (UTC)**, para conseguir preencher `desde`/`ate` em pedidos como "esta semana". A data é juntada à mensagem de sistema em cada chamada ao modelo e não fica na memória da conversa, onde estaria desatualizada no dia seguinte. A mensagem de sistema pede também que o modelo responda só com o que as ferramentas devolverem.
+- **As ferramentas são só de leitura.** Criar, alterar ou apagar notas fica para tickets próprios (R2.5 e R3).
+
+Testes sem rede nem chaves (modelo simulado, SQLite temporário com as 34 notas do `golden.json`):
+
+```bash
+uv run python test_r24b.py
+```
+
+Verificam as duas perguntas de aceitação (as 5 tarefas e nenhuma nota de outra categoria; a nota da Sofia), o campo `ferramentas`, o isolamento (outro utilizador não vê nenhuma nota do primeiro, mesmo que o modelo tente passar `utilizador`), os erros de argumentos e que os logs não têm texto de notas nem identificadores.
+
+Avaliação com o modelo real (requer rede e `NVIDIA_API_KEY`; usa um SQLite temporário e imprime só resultados, nunca o texto das notas):
+
+```bash
+uv run python avaliar_r24b.py --corridas 3
+```
+
+Resultado em 2026-11-25: todos os critérios passaram em 3/3 corridas.
+
+Os testes novos retiram `DATABASE_URL` **depois** de `import app`, porque o `app.py` volta a carregar o `.env`, e param se ainda houver ligação a Postgres. Se as retirassem antes do import, um `.env` local com a base de dados de produção faria os testes escrever lá.

@@ -7,7 +7,7 @@ utilizador é feito na própria consulta SQL, por isso nenhuma ferramenta vê no
 import json
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import db
 
@@ -103,3 +103,91 @@ def procurar_notas(
     if not isinstance(texto, str) or not texto.strip():
         raise ErroFerramenta("Falta o texto a procurar.")
     return _consultar(utilizador, categoria, texto.strip(), desde, ate)
+
+
+# --- Ligação ao agente (R2.4b) ---
+
+_FILTROS = {
+    "categoria": {
+        "type": "string",
+        "enum": CATEGORIAS,
+        "description": "Só notas desta categoria. 'tarefa' são coisas para fazer.",
+    },
+    "desde": {
+        "type": "string",
+        "description": "Primeiro dia incluído, AAAA-MM-DD (data de criação da nota, UTC).",
+    },
+    "ate": {
+        "type": "string",
+        "description": "Último dia incluído, AAAA-MM-DD (data de criação da nota, UTC).",
+    },
+}
+
+ESQUEMAS: list[dict[str, Any]] = [
+    {
+        "type": "function",
+        "function": {
+            "name": "listar_notas",
+            "description": (
+                "Lista as notas do utilizador, das mais recentes para as mais antigas. "
+                "Usa para perguntas como 'o que tenho para fazer?' (categoria 'tarefa')."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": _FILTROS,
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "procurar_notas",
+            "description": (
+                "Procura notas do utilizador que contêm um texto exato, como um nome "
+                "ou uma palavra. Usa para perguntas como 'tenho alguma coisa com a Sofia?'."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "texto": {
+                        "type": "string",
+                        "description": "Palavra ou nome a procurar, por exemplo 'Sofia'.",
+                    },
+                    **_FILTROS,
+                },
+                "required": ["texto"],
+                "additionalProperties": False,
+            },
+        },
+    },
+]
+
+_FUNCOES: dict[str, Callable[..., list[dict[str, Any]]]] = {
+    "listar_notas": listar_notas,
+    "procurar_notas": procurar_notas,
+}
+_ARGUMENTOS = {
+    nome: set(esquema["function"]["parameters"]["properties"])
+    for nome, esquema in zip(_FUNCOES, ESQUEMAS)
+}
+
+
+def executar(nome: str, utilizador: str, args: dict[str, Any]) -> str:
+    """Executa uma ferramenta pedida pelo modelo e devolve o texto da mensagem 'tool'.
+
+    O utilizador vem do pedido; argumentos fora do esquema (por exemplo 'utilizador')
+    são recusados. Os erros voltam ao modelo como texto, para ele poder corrigir o pedido.
+    """
+    if nome not in _FUNCOES:
+        return (
+            f"Erro: a ferramenta {nome} não existe. Disponíveis: {', '.join(_FUNCOES)}."
+        )
+    extra = set(args) - _ARGUMENTOS[nome]
+    if extra:
+        return f"Erro: argumentos não aceites: {', '.join(sorted(extra))}."
+    try:
+        notas = _FUNCOES[nome](utilizador, **args)
+    except (ErroFerramenta, TypeError) as exc:
+        return f"Erro: {exc}"
+    return json.dumps({"total": len(notas), "notas": notas}, ensure_ascii=False)
