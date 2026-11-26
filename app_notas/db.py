@@ -25,6 +25,23 @@ CREATE TABLE IF NOT EXISTS notas (
     quando TEXT
 )"""
 INDICE = "CREATE INDEX IF NOT EXISTS notas_utilizador ON notas (utilizador, criada_em)"
+ESQUEMA_PROPOSTAS = """
+CREATE TABLE IF NOT EXISTS propostas_categoria (
+    id TEXT PRIMARY KEY,
+    lote_id TEXT NOT NULL,
+    utilizador TEXT NOT NULL,
+    nota_id TEXT NOT NULL,
+    categoria_atual TEXT NOT NULL,
+    categoria_proposta TEXT NOT NULL,
+    estado TEXT NOT NULL CHECK (estado IN ('pendente', 'aprovada', 'rejeitada', 'cancelada')),
+    criada_em TEXT NOT NULL,
+    resolvida_em TEXT,
+    UNIQUE (lote_id, nota_id)
+)"""
+INDICE_PROPOSTAS = (
+    "CREATE INDEX IF NOT EXISTS propostas_utilizador_estado "
+    "ON propostas_categoria (utilizador, estado, criada_em)"
+)
 
 
 def url_postgres():
@@ -41,7 +58,7 @@ def ligacao():
     if url:
         import psycopg
 
-        conn = psycopg.connect(url, autocommit=True)
+        conn = psycopg.connect(url)
         marcador = "%s"
     else:
         conn = sqlite3.connect(SQLITE_PATH)
@@ -51,6 +68,8 @@ def ligacao():
         cur = conn.cursor()
         cur.execute(ESQUEMA)
         cur.execute(INDICE)
+        cur.execute(ESQUEMA_PROPOSTAS)
+        cur.execute(INDICE_PROPOSTAS)
         if url:
             cur.execute("ALTER TABLE notas ADD COLUMN IF NOT EXISTS quando TEXT")
         else:
@@ -69,6 +88,9 @@ def ligacao():
 
         yield sql
         conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -133,9 +155,200 @@ def listar(
 
 def apagar(utilizador, id):
     with ligacao() as sql:
-        return (
+        apagadas = sql(
+            "DELETE FROM notas WHERE id = ? AND utilizador = ?", (id, utilizador)
+        ).rowcount
+        if apagadas:
             sql(
-                "DELETE FROM notas WHERE id = ? AND utilizador = ?", (id, utilizador)
-            ).rowcount
-            > 0
+                "UPDATE propostas_categoria SET estado = 'cancelada', resolvida_em = ? "
+                "WHERE utilizador = ? AND nota_id = ? AND estado = 'pendente'",
+                (datetime.now(timezone.utc).isoformat(), utilizador, id),
+            )
+        return apagadas > 0
+
+
+def criar_propostas_categoria(utilizador, propostas, categorias):
+    """Guarda só propostas válidas e diferentes da categoria atual da nota."""
+    if not isinstance(propostas, list):
+        return []
+
+    candidatos = []
+    vistos = set()
+    for proposta in propostas[:50]:
+        if not isinstance(proposta, dict) or set(proposta) != {"nota_id", "categoria"}:
+            continue
+        nota_id, categoria = proposta["nota_id"], proposta["categoria"]
+        if (
+            not isinstance(nota_id, str)
+            or not nota_id
+            or len(nota_id) > 200
+            or not isinstance(categoria, str)
+            or categoria not in categorias
+            or nota_id in vistos
+        ):
+            continue
+        vistos.add(nota_id)
+        candidatos.append((nota_id, categoria))
+
+    if not candidatos:
+        return []
+
+    lote_id = str(uuid.uuid4())
+    agora = datetime.now(timezone.utc).isoformat()
+    guardadas = []
+    with ligacao() as sql:
+        for nota_id, categoria in candidatos:
+            proposta_existente = sql(
+                "SELECT 1 FROM propostas_categoria "
+                "WHERE utilizador = ? AND nota_id = ? AND estado = 'pendente'",
+                (utilizador, nota_id),
+            ).fetchone()
+            if proposta_existente:
+                continue
+            nota = sql(
+                "SELECT id, texto, categoria FROM notas "
+                "WHERE id = ? AND utilizador = ?",
+                (nota_id, utilizador),
+            ).fetchone()
+            if not nota:
+                continue
+            linha = (
+                dict(nota)
+                if isinstance(nota, sqlite3.Row)
+                else {
+                    "id": nota[0],
+                    "texto": nota[1],
+                    "categoria": nota[2],
+                }
+            )
+            if linha["categoria"] == categoria:
+                continue
+            proposta_id = str(uuid.uuid4())
+            sql(
+                "INSERT INTO propostas_categoria "
+                "(id, lote_id, utilizador, nota_id, categoria_atual, categoria_proposta, "
+                "estado, criada_em, resolvida_em) "
+                "VALUES (?, ?, ?, ?, ?, ?, 'pendente', ?, NULL)",
+                (
+                    proposta_id,
+                    lote_id,
+                    utilizador,
+                    nota_id,
+                    linha["categoria"],
+                    categoria,
+                    agora,
+                ),
+            )
+            guardadas.append(
+                {
+                    "id": proposta_id,
+                    "lote_id": lote_id,
+                    "nota_id": nota_id,
+                    "texto": linha["texto"],
+                    "categoria_atual": linha["categoria"],
+                    "categoria_proposta": categoria,
+                    "estado": "pendente",
+                    "criada_em": agora,
+                }
+            )
+    return guardadas
+
+
+def listar_propostas_categoria(utilizador, estado="pendente", lote_id=None):
+    if estado not in {"pendente", "aprovada", "rejeitada", "cancelada"}:
+        raise ValueError("Estado de proposta inválido.")
+    query = (
+        "SELECT p.id, p.lote_id, p.nota_id, n.texto, p.categoria_atual, "
+        "p.categoria_proposta, p.estado, p.criada_em "
+        "FROM propostas_categoria p JOIN notas n "
+        "ON n.id = p.nota_id AND n.utilizador = p.utilizador "
+        "WHERE p.utilizador = ? AND p.estado = ?"
+    )
+    params = [utilizador, estado]
+    if lote_id is not None:
+        query += " AND p.lote_id = ?"
+        params.append(lote_id)
+    query += " ORDER BY p.criada_em, p.id LIMIT ?"
+    params.append(200)
+    with ligacao() as sql:
+        rows = sql(query, params).fetchall()
+    keys = (
+        "id",
+        "lote_id",
+        "nota_id",
+        "texto",
+        "categoria_atual",
+        "categoria_proposta",
+        "estado",
+        "criada_em",
+    )
+    return [
+        dict(zip(keys, row))
+        if not isinstance(row, sqlite3.Row)
+        else {key: row[key] for key in keys}
+        for row in rows
+    ]
+
+
+class PropostaDesatualizada(Exception):
+    """A nota mudou ou foi apagada desde que a proposta foi criada."""
+
+
+def aprovar_proposta_categoria(utilizador, proposta_id):
+    agora = datetime.now(timezone.utc).isoformat()
+    with ligacao() as sql:
+        proposta = sql(
+            "SELECT nota_id, categoria_atual, categoria_proposta, estado "
+            "FROM propostas_categoria WHERE id = ? AND utilizador = ?",
+            (proposta_id, utilizador),
+        ).fetchone()
+        if not proposta:
+            return "nao_encontrada"
+        if isinstance(proposta, sqlite3.Row):
+            nota_id = proposta["nota_id"]
+            categoria_atual = proposta["categoria_atual"]
+            categoria_proposta = proposta["categoria_proposta"]
+            estado = proposta["estado"]
+        else:
+            nota_id, categoria_atual, categoria_proposta, estado = proposta
+        if estado != "pendente":
+            return "ja_resolvida"
+
+        atualizada = sql(
+            "UPDATE propostas_categoria SET estado = 'aprovada', resolvida_em = ? "
+            "WHERE id = ? AND utilizador = ? AND estado = 'pendente'",
+            (agora, proposta_id, utilizador),
         )
+        if atualizada.rowcount != 1:
+            return "ja_resolvida"
+
+        nota_atualizada = sql(
+            "UPDATE notas SET categoria = ? "
+            "WHERE id = ? AND utilizador = ? AND categoria = ?",
+            (categoria_proposta, nota_id, utilizador, categoria_atual),
+        )
+        if nota_atualizada.rowcount != 1:
+            raise PropostaDesatualizada
+    return {"nota_id": nota_id, "categoria": categoria_proposta}
+
+
+def rejeitar_proposta_categoria(utilizador, proposta_id):
+    agora = datetime.now(timezone.utc).isoformat()
+    with ligacao() as sql:
+        proposta = sql(
+            "SELECT estado FROM propostas_categoria WHERE id = ? AND utilizador = ?",
+            (proposta_id, utilizador),
+        ).fetchone()
+        if not proposta:
+            return "nao_encontrada"
+        estado = (
+            proposta["estado"] if isinstance(proposta, sqlite3.Row) else proposta[0]
+        )
+        if estado != "pendente":
+            return "ja_resolvida"
+        atualizada = sql(
+            "UPDATE propostas_categoria SET estado = 'rejeitada', resolvida_em = ? "
+            "WHERE id = ? AND utilizador = ? AND estado = 'pendente'",
+            (agora, proposta_id, utilizador),
+        )
+        return "rejeitada" if atualizada.rowcount == 1 else "ja_resolvida"

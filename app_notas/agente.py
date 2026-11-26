@@ -109,7 +109,11 @@ def executar_agente(
                     "content": (
                         "Responde em português. Usa ferramentas apenas quando necessário. "
                         "Sobre as notas do utilizador, responde só com o que as "
-                        "ferramentas devolverem."
+                        "ferramentas devolverem. Se a pessoa pedir para reorganizar notas, "
+                        "lista as notas e usa propor_alteracoes_categoria para sugerir "
+                        "mudanças. Essa ferramenta só cria propostas pendentes; nunca "
+                        "alteres notas diretamente. Cada proposta precisa de aprovação "
+                        "individual explícita antes de ser gravada."
                     ),
                 }
             )

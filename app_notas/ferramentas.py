@@ -105,6 +105,20 @@ def procurar_notas(
     return _consultar(utilizador, categoria, texto.strip(), desde, ate)
 
 
+def propor_alteracoes_categoria(
+    utilizador: str, propostas: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Persiste propostas válidas sem alterar as notas."""
+    guardadas = db.criar_propostas_categoria(
+        _validar_utilizador(utilizador), propostas, CATEGORIAS
+    )
+    return {
+        "lote_id": guardadas[0]["lote_id"] if guardadas else None,
+        "total": len(guardadas),
+        "propostas": guardadas,
+    }
+
+
 # --- Ligação ao agente (R2.4b) ---
 
 _FILTROS = {
@@ -161,6 +175,45 @@ ESQUEMAS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "propor_alteracoes_categoria",
+            "description": (
+                "Cria propostas pendentes para alterar categorias das notas do utilizador. "
+                "Usa apenas depois de listar as notas e quando a pessoa pedir para as "
+                "reorganizar. Só guarda propostas; nunca altera categorias. Propõe apenas "
+                "categorias válidas diferentes da atual. A pessoa terá de aprovar cada uma."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "propostas": {
+                        "type": "array",
+                        "maxItems": 50,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "nota_id": {
+                                    "type": "string",
+                                    "description": "ID de uma nota devolvida por listar_notas.",
+                                },
+                                "categoria": {
+                                    "type": "string",
+                                    "enum": CATEGORIAS,
+                                    "description": "Categoria sugerida para a nota.",
+                                },
+                            },
+                            "required": ["nota_id", "categoria"],
+                            "additionalProperties": False,
+                        },
+                    }
+                },
+                "required": ["propostas"],
+                "additionalProperties": False,
+            },
+        },
+    },
 ]
 
 _FUNCOES: dict[str, Callable[..., list[dict[str, Any]]]] = {
@@ -179,6 +232,15 @@ def executar(nome: str, utilizador: str, args: dict[str, Any]) -> str:
     O utilizador vem do pedido; argumentos fora do esquema (por exemplo 'utilizador')
     são recusados. Os erros voltam ao modelo como texto, para ele poder corrigir o pedido.
     """
+    if nome == "propor_alteracoes_categoria":
+        extra = set(args) - {"propostas"}
+        if extra or set(args) != {"propostas"}:
+            return "Erro: argumentos inválidos para propor alterações de categoria."
+        try:
+            resultado = propor_alteracoes_categoria(utilizador, args["propostas"])
+        except (ErroFerramenta, TypeError) as exc:
+            return f"Erro: {exc}"
+        return json.dumps(resultado, ensure_ascii=False)
     if nome not in _FUNCOES:
         return (
             f"Erro: a ferramenta {nome} não existe. Disponíveis: {', '.join(_FUNCOES)}."

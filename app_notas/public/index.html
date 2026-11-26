@@ -9,7 +9,13 @@
 const ANTIGAS = 'entrelinhas.notes.v1', ID = 'entrelinhas.utilizador';
 const list = document.querySelector('#list'), form = document.querySelector('#form'), field = document.querySelector('#text'),
   submit = document.querySelector('#submit'), error = document.querySelector('#error'), count = document.querySelector('#count');
-let notes = [];
+let notes = [], propostas = [];
+const reorganizar = document.createElement('button');
+reorganizar.type = 'button'; reorganizar.className = 'filter'; reorganizar.textContent = 'Arrumar as minhas notas';
+document.querySelector('.notes-head').append(reorganizar);
+const revisao = document.createElement('section');
+revisao.className = 'list'; revisao.hidden = true; revisao.setAttribute('aria-live', 'polite');
+list.parentNode.insertBefore(revisao, list);
 let utilizador = localStorage.getItem(ID);
 if (!utilizador) { utilizador = crypto.randomUUID(); localStorage.setItem(ID, utilizador); }
 
@@ -57,6 +63,48 @@ function render() {
   }
 }
 
+function renderPropostas() {
+  revisao.replaceChildren();
+  revisao.hidden = propostas.length === 0;
+  for (const proposta of propostas) {
+    const card = document.createElement('article'); card.className = 'panel note';
+    const texto = document.createElement('p'); texto.className = 'note-text';
+    texto.textContent = `${proposta.texto} — ${proposta.categoria_atual} → ${proposta.categoria_proposta}`;
+    const acoes = document.createElement('div'); acoes.className = 'note-bottom';
+    const aprovar = document.createElement('button'); aprovar.className = 'filter'; aprovar.textContent = 'Aprovar';
+    const rejeitar = document.createElement('button'); rejeitar.className = 'delete'; rejeitar.textContent = 'Rejeitar';
+    aprovar.onclick = async () => {
+      aprovar.disabled = true; rejeitar.disabled = true;
+      try {
+        await api(`/api/propostas/${encodeURIComponent(proposta.id)}/aprovar`, {method: 'POST'});
+        propostas = propostas.filter(item => item.id !== proposta.id);
+        notes = await api('/api/notas'); render(); renderPropostas();
+      } catch (e) { error.textContent = e.message; aprovar.disabled = false; rejeitar.disabled = false; }
+    };
+    rejeitar.onclick = async () => {
+      aprovar.disabled = true; rejeitar.disabled = true;
+      try {
+        await api(`/api/propostas/${encodeURIComponent(proposta.id)}/rejeitar`, {method: 'POST'});
+        propostas = propostas.filter(item => item.id !== proposta.id); renderPropostas();
+      } catch (e) { error.textContent = e.message; aprovar.disabled = false; rejeitar.disabled = false; }
+    };
+    acoes.append(aprovar, rejeitar); card.append(texto, acoes); revisao.append(card);
+  }
+}
+
+reorganizar.addEventListener('click', async () => {
+  reorganizar.disabled = true; error.textContent = '';
+  try {
+    const resultado = await api('/api/agente', {
+      method: 'POST', body: JSON.stringify({mensagem: 'Arruma as minhas notas'}),
+    });
+    propostas = await api('/api/propostas/pendentes');
+    renderPropostas();
+    if (!propostas.length) error.textContent = resultado.resposta || 'Não encontrei alterações de categoria para propor.';
+  } catch (e) { error.textContent = e.message; }
+  finally { reorganizar.disabled = false; }
+});
+
 field.addEventListener('input', () => document.querySelector('#length').textContent = field.value.length);
 form.addEventListener('submit', async event => {
   event.preventDefault();
@@ -70,7 +118,12 @@ form.addEventListener('submit', async event => {
 });
 
 (async () => {
-  try { await importarAntigas(); notes = await api('/api/notas'); }
+  try {
+    await importarAntigas();
+    notes = await api('/api/notas');
+    propostas = await api('/api/propostas/pendentes');
+    renderPropostas();
+  }
   catch (e) { error.textContent = e.message; }
   render();
 })();

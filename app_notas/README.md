@@ -144,6 +144,25 @@ python test_agente.py
 Os testes simulam o modelo e verificam o cabeçalho obrigatório, o formato de resposta, o identificador de conversa, o limite de seis passos e que mensagens, identificadores de utilizador e argumentos não são registados nos logs.
 A experiência de falha, os testes e as instruções para consultar logs estão em [OBSERVABILIDADE.md](OBSERVABILIDADE.md).
 
+## R3.1 — reorganização com aprovação
+
+Ao pedir ao agente para reorganizar notas, ele pode propor novas categorias. A resposta
+do endpoint `/api/agente` inclui `pendente.propostas`; até à aprovação ou rejeição, as
+notas não são alteradas. Propostas inválidas, iguais à categoria atual, duplicadas ou
+de notas que não pertencem ao utilizador são descartadas antes de serem apresentadas.
+
+As propostas ficam numa tabela separada na base de dados. A página lista propostas
+pendentes após carregar, e cada uma pode ser aprovada ou rejeitada individualmente.
+Os endpoints são `GET /api/propostas/pendentes`,
+`POST /api/propostas/{id}/aprovar` e `POST /api/propostas/{id}/rejeitar`. Uma aprovação
+só altera a nota se ela ainda existir e mantiver a categoria original; caso contrário
+responde `409` para evitar sobrescrever alterações concorrentes.
+
+Teste offline: `uv run python test_r3.py`. Verifica que propor não altera notas,
+categorias inválidas/sem mudança são descartadas, aprovar duas de cinco altera apenas
+essas duas, rejeição não altera notas, o estado sobrevive a reiniciar a aplicação e
+as propostas respeitam o isolamento por `X-Utilizador`.
+
 ## R2.3 — resistência a prompt injection
 
 O classificador trata o texto da nota como conteúdo não confiável. A tarefa fixa e a
