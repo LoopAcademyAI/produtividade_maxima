@@ -10,6 +10,21 @@ const ANTIGAS = 'entrelinhas.notes.v1', ID = 'entrelinhas.utilizador';
 const list = document.querySelector('#list'), form = document.querySelector('#form'), field = document.querySelector('#text'),
   submit = document.querySelector('#submit'), error = document.querySelector('#error'), count = document.querySelector('#count');
 let notes = [], propostas = [];
+const resumoDiario = document.createElement('section');
+resumoDiario.className = 'panel note';
+resumoDiario.hidden = true;
+resumoDiario.style.marginTop = '24px';
+resumoDiario.setAttribute('aria-live', 'polite');
+const tituloResumo = document.createElement('h2');
+tituloResumo.textContent = 'Resumo diário';
+tituloResumo.style.margin = '0 0 12px';
+const textoResumo = document.createElement('p');
+textoResumo.className = 'note-text';
+textoResumo.style.marginBottom = '0';
+const dataResumo = document.createElement('span');
+dataResumo.className = 'date';
+resumoDiario.append(tituloResumo, textoResumo, dataResumo);
+document.querySelector('.hero').before(resumoDiario);
 const reorganizar = document.createElement('button');
 reorganizar.type = 'button'; reorganizar.className = 'filter'; reorganizar.textContent = 'Arrumar as minhas notas';
 document.querySelector('.notes-head').append(reorganizar);
@@ -25,6 +40,18 @@ async function api(path, options = {}) {
   const data = await response.json();
   if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Não foi possível ligar ao servidor.');
   return data;
+}
+
+async function carregarResumoDiario() {
+  try {
+    const resumo = await api('/api/resumo-diario');
+    if (!resumo.resumo) return;
+    tituloResumo.textContent = 'Resumo diário';
+    textoResumo.textContent = resumo.resumo;
+    const [ano, mes, dia] = resumo.dia.split('-');
+    dataResumo.textContent = `${dia}/${mes}/${ano}`;
+    resumoDiario.hidden = false;
+  } catch (e) { error.textContent = e.message; }
 }
 
 async function importarAntigas() {
@@ -191,6 +218,7 @@ formCategorias.addEventListener('submit', async event => {
     notes = await api('/api/notas');
     propostas = await api('/api/propostas/pendentes');
     renderPropostas();
+    await carregarResumoDiario();
   }
   catch (e) { error.textContent = e.message; }
   render();

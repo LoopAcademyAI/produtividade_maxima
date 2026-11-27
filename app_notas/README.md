@@ -97,6 +97,33 @@ Definir `app_notas` como diretório raiz do projeto, selecionar FastAPI e config
 
 Para entregar a aplicação a outro grupo, seguir [GUIA_PARTILHA_E_DEPLOY.md](GUIA_PARTILHA_E_DEPLOY.md). O guia explica como usarem as credenciais deles, fazerem deploy e ligarem o Grafana sem receberem segredos deste projeto.
 
+## R6.1 — resumo diário com Vercel Cron
+
+O `vercel.json` agenda `GET /api/cron/resumo-diario` às 09:00 UTC todos os dias.
+O endpoint exige `Authorization: Bearer <CRON_SECRET>` e responde `401` se o segredo
+estiver ausente ou incorreto. Configura `CRON_SECRET` como variável de ambiente
+secreta no projeto Vercel e localmente no `.env`; gera um valor forte com
+`python -c "import secrets; print(secrets.token_urlsafe(32))"`. Nunca o registes nem
+o incluas no repositório.
+
+O plano Hobby permite no máximo 100 Cron Jobs por projeto, com frequência mínima
+diária e precisão horária (a execução pode ocorrer até 59 minutos antes ou depois
+da hora programada). O agendamento usa UTC. Por isso, às 09:00 UTC o endpoint
+resume as notas do dia UTC anterior, que já terminou mesmo se o cron atrasar. A
+documentação também indica que execuções falhadas não são repetidas
+automaticamente. Um resumo é guardado por utilizador e dia; reexecutar o endpoint
+não volta a chamar o modelo para os resumos já guardados, permitindo recuperar
+falhas parciais sem duplicar o trabalho concluído.
+
+Cada utilizador com notas nesse dia recebe um resumo persistido em `resumos_diarios`;
+utilizadores sem notas não geram resumos nem chamadas ao modelo. O resumo mais
+recente é carregado no topo da página através de `/api/resumo-diario`, isolado pelo
+cabeçalho `X-Utilizador`. A tabela é criada/migrada automaticamente no arranque da
+ligação à base de dados.
+
+Limites e comportamento: [documentação oficial dos Cron Jobs da Vercel](https://vercel.com/docs/cron-jobs/usage-and-pricing).
+Teste offline: `uv run python test_r61.py` (não requer chave nem rede).
+
 ## Logs e observabilidade
 
 A experiência de falha, os testes e as instruções para consultar logs estão em [OBSERVABILIDADE.md](OBSERVABILIDADE.md). Para executar os testes locais: `uv sync --locked` e `uv run python run_tests.py`.
