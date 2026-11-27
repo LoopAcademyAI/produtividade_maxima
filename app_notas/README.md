@@ -288,7 +288,7 @@ Decisões:
 - **Os erros voltam ao modelo como texto** (categoria desconhecida, data inválida, ferramenta inexistente), para ele poder corrigir o pedido. O pedido HTTP não falha por isso.
 - **O `agente.py` não conhece a base de dados:** recebe a função `executar_ferramenta(nome, args)` por parâmetro. Sem ela, mantém o comportamento da R2.1 ("ferramenta indisponível").
 - **O modelo recebe a data de hoje (UTC)**, para conseguir preencher `desde`/`ate` em pedidos como "esta semana". A data é juntada à mensagem de sistema em cada chamada ao modelo e não fica na memória da conversa, onde estaria desatualizada no dia seguinte. A mensagem de sistema pede também que o modelo responda só com o que as ferramentas devolverem.
-- **As ferramentas são só de leitura.** Criar, alterar ou apagar notas fica para tickets próprios (R2.5 e R3).
+- **Na R2.4b, estas duas ferramentas eram só de leitura.** A R3.1 acrescentou propostas de mudança de categoria para notas, com aprovação; a R2.5 acrescenta propostas de categorias pessoais, também sujeitas a aprovação.
 
 Testes sem rede nem chaves (modelo simulado, SQLite temporário com as 34 notas do `golden.json`):
 
@@ -324,3 +324,37 @@ IDs, evitando referências inventadas ou notas de outra pessoa.
 
 Teste offline: `uv run python test_r5.py`. O teste simula pedidos sem rede nem chave e
 verifica as secções, a ordem, os limites da semana, os IDs existentes e o isolamento.
+
+## R2.5 — criar uma categoria pessoal com aprovação
+
+O agente oferece a ferramenta `criar_categoria`. Um pedido como «Cria a categoria compras» devolve uma proposta em `pendente`, com `id`, `tipo` e `nome`. A proposta é guardada para sobreviver a um novo deploy, mas **não entra nas opções do classificador antes da aprovação**. A página mostra as propostas pendentes e botões para aprovar ou rejeitar; após aprovar, mostra a categoria na lista pessoal. A R3.1 já trata de propostas para reorganizar notas; a criação de categorias usa uma tabela e endpoints próprios porque a entidade aprovada é diferente. Os dois fluxos coexistem no mesmo agente e na mesma página.
+
+Contrato da API, sempre com `X-Utilizador`:
+
+```text
+POST /api/agente                    {"mensagem":"Cria a categoria compras"}
+GET  /api/categorias                → categorias aprovadas e propostas pendentes
+POST /api/categorias/{id}/aprovar   → ativa a categoria
+POST /api/categorias/{id}/rejeitar  → descarta a proposta
+```
+
+Nomes vazios, com mais de 30 caracteres, com quebras de linha ou caracteres fora de letras, números, espaços e hífens são recusados com explicação. Espaços e maiúsculas são normalizados; nomes que só diferem em acentos contam como repetidos. Uma categoria base, aprovada ou já pendente não pode ser proposta de novo pelo mesmo utilizador. A aprovação e a rejeição são operações únicas: repetir uma decisão ou usar o ID de outra pessoa devolve 404.
+
+O classificador lê as categorias aprovadas para o utilizador de cada pedido e constrói **nesse pedido** as definições, as opções do prompt e o enum do JSON Schema. `/api/notas` e `/api/classificar` com `X-Utilizador` podem escolher categorias pessoais; sem esse cabeçalho, `/api/classificar` mantém apenas as categorias base. Uma categoria de outra pessoa é recusada mesmo que o modelo a devolva. As ferramentas de pesquisa também aceitam filtros por categorias aprovadas do próprio utilizador. O nome de uma categoria pessoal não é escrito nos logs de classificação.
+
+O cabeçalho `X-Utilizador` continua a ser apenas um identificador gerado pelo navegador, **não autenticação**: quem conhecer o UUID de outra pessoa pode apresentar-se como ela. A aprovação persistente e o isolamento seguem o contrato atual da aplicação; contas e autenticação precisam de um ticket próprio.
+
+Testes offline, sem chave nem NVIDIA, em `app_notas/`:
+
+```bash
+uv run python test_r25.py
+uv run python run_tests.py
+```
+
+O teste cobre proposta sem ativação, nomes inválidos e repetidos, reinício da aplicação, aprovação, rejeição, isolamento, esquema do classificador por utilizador e logs sem texto de notas, identificadores ou nomes de categorias pessoais. Inclui tentativas de injeção SQL no nome e no ID, HTML no nome, caracteres invisíveis, argumentos malformados e uma chamada a uma ferramenta de aprovação inexistente; estes casos são recusados sem ativar a categoria. O modelo é simulado. Para avaliar a escolha da ferramenta pelo modelo real com dados sintéticos:
+
+```bash
+uv run python avaliar_r25.py
+```
+
+Em 26 de novembro de 2026, após a integração com a R3.1, o modelo propôs corretamente a categoria em **3/3 pedidos sintéticos**; após aprovação, escolheu `compras` em 2/3 notas sintéticas sobre compras e `pessoal` na outra. Estas três notas têm intenções diferentes e não constituem uma medida de acerto. O script tem ainda `--golden` para imprimir o acerto nas 34 notas do conjunto oficial, mas essa opção **não foi executada**: a revisão automática bloqueou o envio do golden à API externa por poder conter notas privadas. Não se guardam textos de notas ou credenciais nos resultados.
