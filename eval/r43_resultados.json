@@ -1,0 +1,1288 @@
+{
+  "golden_sha256": "aca0a2ed81f871c893f18b457376ff930954335b623ab160489d0dc76771a9c1",
+  "modelo": "nvidia/nemotron-3-ultra-550b-a55b",
+  "temperatura_votos": 0.8,
+  "temperatura_critico": 0,
+  "votos_por_nota": 5,
+  "limiar_duvida": 5,
+  "corridas": [
+    [
+      {
+        "votos": [
+          "preocupações",
+          "preocupações",
+          "preocupações",
+          "preocupações",
+          "preocupações"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "social",
+          "social",
+          "social",
+          "social",
+          "social"
+        ],
+        "entrada_votos": 3340,
+        "saida_votos": 40,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3300,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3290,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "preocupações",
+          "preocupações",
+          "preocupações",
+          "preocupações",
+          "preocupações"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "foco",
+          "foco",
+          "foco",
+          "foco",
+          "tarefa"
+        ],
+        "entrada_votos": 3320,
+        "saida_votos": 46,
+        "critico": {
+          "categoria": "foco",
+          "entrada": 754,
+          "saida": 9
+        }
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3280,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda"
+        ],
+        "entrada_votos": 3330,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3315,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem"
+        ],
+        "entrada_votos": 3360,
+        "saida_votos": 55,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3270,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3320,
+        "saida_votos": 46,
+        "critico": {
+          "categoria": "ideia",
+          "entrada": 752,
+          "saida": 9
+        }
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3310,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda"
+        ],
+        "entrada_votos": 3280,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda"
+        ],
+        "entrada_votos": 3365,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem"
+        ],
+        "entrada_votos": 3280,
+        "saida_votos": 55,
+        "critico": null
+      },
+      {
+        "votos": [
+          "pessoal",
+          "pessoal",
+          "pessoal",
+          "pessoal",
+          "pessoal"
+        ],
+        "entrada_votos": 3285,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "outros",
+          "outros",
+          "outros",
+          "outros",
+          "outros"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda"
+        ],
+        "entrada_votos": 3305,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "social",
+          "social",
+          "social",
+          "social",
+          "social"
+        ],
+        "entrada_votos": 3270,
+        "saida_votos": 40,
+        "critico": null
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "trabalho",
+          "trabalho",
+          "trabalho",
+          "trabalho",
+          "trabalho"
+        ],
+        "entrada_votos": 3295,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem"
+        ],
+        "entrada_votos": 3250,
+        "saida_votos": 54,
+        "critico": {
+          "categoria": "aprendizagem",
+          "entrada": 740,
+          "saida": 11
+        }
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3280,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "foco",
+          "foco",
+          "foco",
+          "foco",
+          "foco"
+        ],
+        "entrada_votos": 3285,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3295,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3285,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3345,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "social",
+          "social",
+          "social",
+          "social",
+          "social"
+        ],
+        "entrada_votos": 3315,
+        "saida_votos": 40,
+        "critico": null
+      },
+      {
+        "votos": [
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem"
+        ],
+        "entrada_votos": 3340,
+        "saida_votos": 55,
+        "critico": null
+      },
+      {
+        "votos": [
+          "outros",
+          "outros",
+          "outros",
+          "outros",
+          "outros"
+        ],
+        "entrada_votos": 3255,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3295,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3305,
+        "saida_votos": 50,
+        "critico": null
+      }
+    ],
+    [
+      {
+        "votos": [
+          "preocupações",
+          "preocupações",
+          "preocupações",
+          "preocupações",
+          "preocupações"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "social",
+          "social",
+          "social",
+          "social",
+          "social"
+        ],
+        "entrada_votos": 3340,
+        "saida_votos": 40,
+        "critico": null
+      },
+      {
+        "votos": [
+          "trabalho",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3300,
+        "saida_votos": 50,
+        "critico": {
+          "categoria": "trabalho",
+          "entrada": 749,
+          "saida": 10
+        }
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3290,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "preocupações",
+          "preocupações",
+          "preocupações",
+          "preocupações",
+          "preocupações"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "foco",
+          "foco",
+          "tarefa",
+          "foco",
+          "foco"
+        ],
+        "entrada_votos": 3320,
+        "saida_votos": 46,
+        "critico": {
+          "categoria": "foco",
+          "entrada": 754,
+          "saida": 9
+        }
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3280,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda"
+        ],
+        "entrada_votos": 3330,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3315,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "tarefa",
+          "aprendizagem"
+        ],
+        "entrada_votos": 3360,
+        "saida_votos": 54,
+        "critico": {
+          "categoria": "aprendizagem",
+          "entrada": 762,
+          "saida": 11
+        }
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3270,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3320,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3310,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda"
+        ],
+        "entrada_votos": 3280,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda"
+        ],
+        "entrada_votos": 3365,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem"
+        ],
+        "entrada_votos": 3280,
+        "saida_votos": 55,
+        "critico": null
+      },
+      {
+        "votos": [
+          "pessoal",
+          "pessoal",
+          "pessoal",
+          "pessoal",
+          "pessoal"
+        ],
+        "entrada_votos": 3285,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "outros",
+          "outros",
+          "outros",
+          "outros",
+          "outros"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda"
+        ],
+        "entrada_votos": 3305,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "social",
+          "pessoal",
+          "social",
+          "social",
+          "social"
+        ],
+        "entrada_votos": 3270,
+        "saida_votos": 42,
+        "critico": {
+          "categoria": "social",
+          "entrada": 741,
+          "saida": 8
+        }
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "trabalho",
+          "trabalho",
+          "trabalho",
+          "trabalho",
+          "trabalho"
+        ],
+        "entrada_votos": 3295,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem"
+        ],
+        "entrada_votos": 3250,
+        "saida_votos": 55,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3280,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "foco",
+          "foco",
+          "foco",
+          "foco",
+          "foco"
+        ],
+        "entrada_votos": 3285,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3295,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3285,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "agenda",
+          "agenda",
+          "tarefa",
+          "agenda",
+          "tarefa"
+        ],
+        "entrada_votos": 3345,
+        "saida_votos": 47,
+        "critico": {
+          "categoria": "agenda",
+          "entrada": 757,
+          "saida": 9
+        }
+      },
+      {
+        "votos": [
+          "social",
+          "social",
+          "social",
+          "social",
+          "social"
+        ],
+        "entrada_votos": 3315,
+        "saida_votos": 40,
+        "critico": null
+      },
+      {
+        "votos": [
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem"
+        ],
+        "entrada_votos": 3340,
+        "saida_votos": 55,
+        "critico": null
+      },
+      {
+        "votos": [
+          "outros",
+          "outros",
+          "outros",
+          "preocupações",
+          "outros"
+        ],
+        "entrada_votos": 3255,
+        "saida_votos": 46,
+        "critico": {
+          "categoria": "outros",
+          "entrada": 739,
+          "saida": 9
+        }
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3295,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3305,
+        "saida_votos": 50,
+        "critico": null
+      }
+    ],
+    [
+      {
+        "votos": [
+          "preocupações",
+          "preocupações",
+          "preocupações",
+          "preocupações",
+          "preocupações"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "social",
+          "social",
+          "social",
+          "social",
+          "social"
+        ],
+        "entrada_votos": 3340,
+        "saida_votos": 40,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3300,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "pessoal",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3290,
+        "saida_votos": 50,
+        "critico": {
+          "categoria": "tarefa",
+          "entrada": 747,
+          "saida": 10
+        }
+      },
+      {
+        "votos": [
+          "preocupações",
+          "preocupações",
+          "preocupações",
+          "preocupações",
+          "preocupações"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "foco",
+          "foco",
+          "foco",
+          "foco",
+          "foco"
+        ],
+        "entrada_votos": 3320,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3280,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda"
+        ],
+        "entrada_votos": 3330,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3315,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem"
+        ],
+        "entrada_votos": 3360,
+        "saida_votos": 55,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3270,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3320,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3310,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda"
+        ],
+        "entrada_votos": 3280,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda"
+        ],
+        "entrada_votos": 3365,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem"
+        ],
+        "entrada_votos": 3280,
+        "saida_votos": 55,
+        "critico": null
+      },
+      {
+        "votos": [
+          "pessoal",
+          "pessoal",
+          "pessoal",
+          "pessoal",
+          "pessoal"
+        ],
+        "entrada_votos": 3285,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "outros",
+          "outros",
+          "outros",
+          "outros",
+          "outros"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda",
+          "agenda"
+        ],
+        "entrada_votos": 3305,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "social",
+          "social",
+          "social",
+          "social",
+          "social"
+        ],
+        "entrada_votos": 3270,
+        "saida_votos": 40,
+        "critico": null
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3275,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "trabalho",
+          "trabalho",
+          "trabalho",
+          "trabalho",
+          "trabalho"
+        ],
+        "entrada_votos": 3295,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "tarefa",
+          "aprendizagem"
+        ],
+        "entrada_votos": 3250,
+        "saida_votos": 54,
+        "critico": {
+          "categoria": "aprendizagem",
+          "entrada": 740,
+          "saida": 11
+        }
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3280,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "foco",
+          "foco",
+          "foco",
+          "foco",
+          "foco"
+        ],
+        "entrada_votos": 3285,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3295,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3285,
+        "saida_votos": 50,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "agenda",
+          "agenda",
+          "tarefa",
+          "agenda"
+        ],
+        "entrada_votos": 3345,
+        "saida_votos": 47,
+        "critico": {
+          "categoria": "agenda",
+          "entrada": 757,
+          "saida": 9
+        }
+      },
+      {
+        "votos": [
+          "social",
+          "social",
+          "social",
+          "social",
+          "social"
+        ],
+        "entrada_votos": 3315,
+        "saida_votos": 40,
+        "critico": null
+      },
+      {
+        "votos": [
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem",
+          "aprendizagem"
+        ],
+        "entrada_votos": 3340,
+        "saida_votos": 55,
+        "critico": null
+      },
+      {
+        "votos": [
+          "outros",
+          "outros",
+          "outros",
+          "outros",
+          "outros"
+        ],
+        "entrada_votos": 3255,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia",
+          "ideia"
+        ],
+        "entrada_votos": 3295,
+        "saida_votos": 45,
+        "critico": null
+      },
+      {
+        "votos": [
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa",
+          "tarefa"
+        ],
+        "entrada_votos": 3305,
+        "saida_votos": 50,
+        "critico": null
+      }
+    ]
+  ]
+}
