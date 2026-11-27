@@ -368,3 +368,22 @@ uv run python avaliar_r25.py
 ```
 
 Em 26 de novembro de 2026, após a integração com a R3.1, o modelo propôs corretamente a categoria em **3/3 pedidos sintéticos**; após aprovação, escolheu `compras` em 2/3 notas sintéticas sobre compras e `pessoal` na outra. Estas três notas têm intenções diferentes e não constituem uma medida de acerto. O script tem ainda `--golden` para imprimir o acerto nas 34 notas do conjunto oficial, mas essa opção **não foi executada**: a revisão automática bloqueou o envio do golden à API externa por poder conter notas privadas. Não se guardam textos de notas ou credenciais nos resultados.
+
+## R9.1 — métricas por chamada ao modelo
+
+Cada chamada da aplicação à NVIDIA regista um evento `chamada_modelo` em JSON. Isto inclui o classificador usado por HTTP e MCP, cada passo do agente e a extração de datas quando uma nota é de agenda. Um pedido HTTP pode assim ter mais de um evento, todos com o mesmo `request_id`.
+
+O evento contém `modelo`, `etapa` (`classificacao`, `agente` ou `agenda`), `origem` (`http` ou `mcp`), `estado` (`ok` ou `erro`) e `duracao_ms`. O estado indica se a chamada ao SDK devolveu resposta; uma resposta pode ainda falhar na validação seguinte. Quando o fornecedor devolve contagens, inclui `tokens_entrada` e `tokens_saida`. Em falhas ou respostas sem `usage`, os campos de tokens são omitidos: desconhecido não significa zero. Uma falha regista apenas o tipo da exceção. O tempo mede a chamada ao SDK, incluindo tentativas internas de repetição, mas exclui a construção do prompt e o envio para Loki. `pedido_concluido` continua a medir separadamente o pedido HTTP completo.
+
+O evento não guarda texto de notas, prompts, respostas livres, chaves ou identificadores de utilizador. O `request_id` fica no JSON para correlação, não nos labels do stream Loki. A configuração opcional `LOKI_PUSH_URL`, `LOKI_USER` e `LOKI_TOKEN` continua necessária para enviar os eventos ao Grafana Cloud; sem ela, os eventos continuam nos logs da aplicação. Falhas no envio ao Loki não impedem a resposta da API.
+
+O ficheiro `grafana/dashboard.json` acrescenta dois painéis aos existentes: p50/p95 da latência de todas as chamadas numa janela móvel de uma hora e somas móveis de uma hora dos tokens de entrada e saída conhecidos. Os gráficos só mostram dados reais depois de importar a versão atualizada do dashboard num Grafana ligado ao Loki da aplicação e fazer pedidos à versão publicada. Com poucos pedidos, o p95 é pouco representativo. A R9.1 mede a latência total da chamada; TTFT e teste de carga pertencem à R9.2.
+
+Teste sem chave, rede ou notas de produção, a partir de `app_notas/`:
+
+```bash
+uv run python test_r91.py
+uv run python run_tests.py
+```
+
+Para validar em produção após o deploy: confirmar as três variáveis `LOKI_*` na Vercel sem revelar os valores, importar o dashboard, fazer pedidos com notas artificiais e verificar no Grafana os eventos por chamada, p50/p95, tokens por hora e ausência de texto nos logs. Os testes locais simulam `usage` e o envio ao Loki; não demonstram, por si, o requisito de dados reais no painel.

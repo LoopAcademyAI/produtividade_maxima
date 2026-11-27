@@ -5,10 +5,13 @@ import os
 import re
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Callable
 from zoneinfo import ZoneInfo
 
 from openai import OpenAI, OpenAIError, RateLimitError
+from openai.types.chat import ChatCompletionMessageParam
 
+from metricas_modelo import medir_chamada_modelo
 from resolver_data import resolver_quando
 
 MODELO_AGENDA = "nvidia/nemotron-3-ultra-550b-a55b"
@@ -159,6 +162,9 @@ def extrair_evento_agenda(
     texto: str,
     referencia: date | datetime | str | None = None,
     cliente: OpenAI | None = None,
+    *,
+    request_id: str | None = None,
+    registar_metricas: Callable[..., None] | None = None,
 ) -> ResultadoAgenda:
     """Pede evidência ao modelo; qualquer falha resulta em `quando=None`."""
     base = _referencia_agenda(referencia)
@@ -176,15 +182,23 @@ def extrair_evento_agenda(
                 timeout=12,
                 max_retries=0,
             )
-        resposta = cliente.chat.completions.create(
-            model=MODELO_AGENDA,
-            messages=[
-                {"role": "system", "content": INSTRUCOES},
-                {"role": "user", "content": EXEMPLOS + "\n" + pedido},
-            ],
-            temperature=0,
-            max_tokens=512,
-            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        mensagens_modelo: list[ChatCompletionMessageParam] = [
+            {"role": "system", "content": INSTRUCOES},
+            {"role": "user", "content": EXEMPLOS + "\n" + pedido},
+        ]
+        resposta = medir_chamada_modelo(
+            lambda: cliente.chat.completions.create(
+                model=MODELO_AGENDA,
+                messages=mensagens_modelo,
+                temperature=0,
+                max_tokens=512,
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+            ),
+            modelo=MODELO_AGENDA,
+            etapa="agenda",
+            origem="http",
+            request_id=request_id,
+            registar=registar_metricas,
         )
         bruto = resposta.choices[0].message.content or ""
     except RateLimitError:
