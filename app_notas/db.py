@@ -42,6 +42,20 @@ INDICE_PROPOSTAS = (
     "CREATE INDEX IF NOT EXISTS propostas_utilizador_estado "
     "ON propostas_categoria (utilizador, estado, criada_em)"
 )
+ESQUEMA_CATEGORIAS = """
+CREATE TABLE IF NOT EXISTS categorias_personalizadas (
+    id TEXT PRIMARY KEY,
+    utilizador TEXT NOT NULL,
+    nome TEXT NOT NULL,
+    chave TEXT NOT NULL,
+    estado TEXT NOT NULL CHECK (estado IN ('pendente', 'aprovada')),
+    criada_em TEXT NOT NULL,
+    UNIQUE (utilizador, chave)
+)"""
+INDICE_CATEGORIAS = """
+CREATE INDEX IF NOT EXISTS categorias_por_utilizador
+ON categorias_personalizadas (utilizador, estado)
+"""
 
 
 def url_postgres():
@@ -70,6 +84,8 @@ def ligacao():
         cur.execute(INDICE)
         cur.execute(ESQUEMA_PROPOSTAS)
         cur.execute(INDICE_PROPOSTAS)
+        cur.execute(ESQUEMA_CATEGORIAS)
+        cur.execute(INDICE_CATEGORIAS)
         if url:
             cur.execute("ALTER TABLE notas ADD COLUMN IF NOT EXISTS quando TEXT")
         else:
@@ -352,3 +368,64 @@ def rejeitar_proposta_categoria(utilizador, proposta_id):
             (agora, proposta_id, utilizador),
         )
         return "rejeitada" if atualizada.rowcount == 1 else "ja_resolvida"
+
+
+def propor_categoria(utilizador: str, nome: str, chave: str) -> str | None:
+    identificador = str(uuid.uuid4())
+    with ligacao() as sql:
+        inserida = sql(
+            """INSERT INTO categorias_personalizadas
+            (id, utilizador, nome, chave, estado, criada_em)
+            VALUES (?, ?, ?, ?, 'pendente', ?)
+            ON CONFLICT (utilizador, chave) DO NOTHING RETURNING id""",
+            (
+                identificador,
+                utilizador,
+                nome,
+                chave,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        ).fetchone()
+    return str(inserida[0]) if inserida else None
+
+
+def categorias_aprovadas(utilizador: str) -> list[str]:
+    with ligacao() as sql:
+        linhas = sql(
+            """SELECT nome FROM categorias_personalizadas
+            WHERE utilizador = ? AND estado = 'aprovada' ORDER BY nome""",
+            (utilizador,),
+        ).fetchall()
+    return [str(linha[0]) for linha in linhas]
+
+
+def categorias_pendentes(utilizador: str) -> list[dict[str, str]]:
+    with ligacao() as sql:
+        linhas = sql(
+            """SELECT id, nome FROM categorias_personalizadas
+            WHERE utilizador = ? AND estado = 'pendente' ORDER BY criada_em""",
+            (utilizador,),
+        ).fetchall()
+    return [
+        {"id": str(linha[0]), "tipo": "criar_categoria", "nome": str(linha[1])}
+        for linha in linhas
+    ]
+
+
+def decidir_categoria(utilizador: str, identificador: str, aprovar: bool) -> str | None:
+    with ligacao() as sql:
+        if aprovar:
+            alterada = sql(
+                """UPDATE categorias_personalizadas SET estado = 'aprovada'
+                WHERE id = ? AND utilizador = ? AND estado = 'pendente'
+                RETURNING nome""",
+                (identificador, utilizador),
+            ).fetchone()
+        else:
+            alterada = sql(
+                """DELETE FROM categorias_personalizadas
+                WHERE id = ? AND utilizador = ? AND estado = 'pendente'
+                RETURNING nome""",
+                (identificador, utilizador),
+            ).fetchone()
+    return str(alterada[0]) if alterada else None

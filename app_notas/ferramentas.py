@@ -6,17 +6,12 @@ utilizador é feito na própria consulta SQL, por isso nenhuma ferramenta vê no
 
 import json
 from datetime import date, timedelta
-from pathlib import Path
 from typing import Any, Callable
 
+import categorias
 import db
 
-ROOT = Path(__file__).resolve().parent
-CATEGORIAS = sorted(
-    json.loads((ROOT / "classificador_config.json").read_text(encoding="utf-8"))[
-        "DEFINICOES"
-    ]
-)
+CATEGORIAS = categorias.BASE
 LIMITE_RESULTADOS = 50
 CAMPOS = ("id", "texto", "categoria", "criada_em")
 
@@ -31,12 +26,15 @@ def _validar_utilizador(utilizador: str) -> str:
     return utilizador
 
 
-def _validar_categoria(categoria: str | None) -> str | None:
-    if categoria and categoria not in CATEGORIAS:
+def _validar_categoria(utilizador: str, categoria: str | None) -> str | None:
+    if categoria is None or categoria == "":
+        return None
+    opcoes = categorias.opcoes(utilizador)
+    if not isinstance(categoria, str) or categoria not in opcoes:
         raise ErroFerramenta(
-            f"Categoria desconhecida: {categoria}. Possíveis: {', '.join(CATEGORIAS)}."
+            f"Categoria desconhecida: {categoria}. Possíveis: {', '.join(opcoes)}."
         )
-    return categoria or None
+    return categoria
 
 
 def _data(valor: str | None, nome: str) -> date | None:
@@ -69,7 +67,7 @@ def _consultar(
     inicio, antes_de = _intervalo(desde, ate)
     notas = db.listar(
         _validar_utilizador(utilizador),
-        categoria=_validar_categoria(categoria),
+        categoria=_validar_categoria(utilizador, categoria),
         procura=procura,
         limite=LIMITE_RESULTADOS,
         desde=inicio,
@@ -110,7 +108,7 @@ def propor_alteracoes_categoria(
 ) -> dict[str, Any]:
     """Persiste propostas válidas sem alterar as notas."""
     guardadas = db.criar_propostas_categoria(
-        _validar_utilizador(utilizador), propostas, CATEGORIAS
+        _validar_utilizador(utilizador), propostas, categorias.opcoes(utilizador)
     )
     return {
         "lote_id": guardadas[0]["lote_id"] if guardadas else None,
@@ -124,8 +122,7 @@ def propor_alteracoes_categoria(
 _FILTROS = {
     "categoria": {
         "type": "string",
-        "enum": CATEGORIAS,
-        "description": "Só notas desta categoria. 'tarefa' são coisas para fazer.",
+        "description": "Só notas desta categoria aprovada para o utilizador. 'tarefa' são coisas para fazer.",
     },
     "desde": {
         "type": "string",
@@ -200,8 +197,7 @@ ESQUEMAS: list[dict[str, Any]] = [
                                 },
                                 "categoria": {
                                     "type": "string",
-                                    "enum": CATEGORIAS,
-                                    "description": "Categoria sugerida para a nota.",
+                                    "description": "Categoria base ou pessoal aprovada para a nota.",
                                 },
                             },
                             "required": ["nota_id", "categoria"],
@@ -214,15 +210,37 @@ ESQUEMAS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "criar_categoria",
+            "description": (
+                "Propõe uma nova categoria pessoal. A categoria só fica disponível "
+                "depois de a pessoa aprovar a proposta. Não aproves por ela."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "nome": {
+                        "type": "string",
+                        "description": "Nome da nova categoria, até 30 caracteres.",
+                    }
+                },
+                "required": ["nome"],
+                "additionalProperties": False,
+            },
+        },
+    },
 ]
 
-_FUNCOES: dict[str, Callable[..., list[dict[str, Any]]]] = {
+_FUNCOES: dict[str, Callable[..., Any]] = {
     "listar_notas": listar_notas,
     "procurar_notas": procurar_notas,
+    "criar_categoria": categorias.propor,
 }
 _ARGUMENTOS = {
-    nome: set(esquema["function"]["parameters"]["properties"])
-    for nome, esquema in zip(_FUNCOES, ESQUEMAS)
+    esquema["function"]["name"]: set(esquema["function"]["parameters"]["properties"])
+    for esquema in ESQUEMAS
 }
 
 
@@ -249,7 +267,9 @@ def executar(nome: str, utilizador: str, args: dict[str, Any]) -> str:
     if extra:
         return f"Erro: argumentos não aceites: {', '.join(sorted(extra))}."
     try:
-        notas = _FUNCOES[nome](utilizador, **args)
-    except (ErroFerramenta, TypeError) as exc:
+        resultado = _FUNCOES[nome](_validar_utilizador(utilizador), **args)
+    except (ErroFerramenta, categorias.ErroCategoria, TypeError) as exc:
         return f"Erro: {exc}"
-    return json.dumps({"total": len(notas), "notas": notas}, ensure_ascii=False)
+    if nome == "criar_categoria":
+        return json.dumps({"pendente": resultado}, ensure_ascii=False)
+    return json.dumps({"total": len(resultado), "notas": resultado}, ensure_ascii=False)
