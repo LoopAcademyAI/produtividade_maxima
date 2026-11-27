@@ -83,12 +83,91 @@
         "wrapLogMessage": true,
         "sortOrder": "Descending"
       }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Latência do modelo — p50 / p95",
+      "description": "Percentis móveis de 1 hora por chamada ao modelo, incluindo chamadas que falharam. A duração não inclui o envio para Loki.",
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "quantile_over_time(0.50, {service_name=\"entrelinhas\", environment=\"production\"} | json | event=\"chamada_modelo\" | unwrap duracao_ms | __error__=\"\" [1h])",
+          "legendFormat": "p50",
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "quantile_over_time(0.95, {service_name=\"entrelinhas\", environment=\"production\"} | json | event=\"chamada_modelo\" | unwrap duracao_ms | __error__=\"\" [1h])",
+          "legendFormat": "p95",
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Tokens por hora — entrada / saída",
+      "description": "Soma móvel de 1 hora. Chamadas sem contagem de tokens devolvida pelo fornecedor ficam fora da soma.",
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(sum_over_time({service_name=\"entrelinhas\", environment=\"production\"} | json | event=\"chamada_modelo\" | unwrap tokens_entrada | __error__=\"\" [1h]))",
+          "legendFormat": "Entrada",
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "sum(sum_over_time({service_name=\"entrelinhas\", environment=\"production\"} | json | event=\"chamada_modelo\" | unwrap tokens_saida | __error__=\"\" [1h]))",
+          "legendFormat": "Saída",
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          }
+        }
+      ]
     }
   ],
   "schemaVersion": 39,
   "tags": [
     "entrelinhas",
-    "logs"
+    "logs",
+    "metricas-modelo"
   ],
   "templating": {
     "list": []
@@ -99,5 +178,5 @@
   },
   "timezone": "browser",
   "title": "Entrelinhas — Observabilidade",
-  "version": 1
+  "version": 2
 }

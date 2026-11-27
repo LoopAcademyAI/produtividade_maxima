@@ -32,6 +32,7 @@ from agenda_evento import extrair_evento_agenda
 from agente import ChamadaFerramenta, RespostaModelo, executar_agente
 from mcp_server import mcp, mcp_app
 from memoria import abrir_checkpointer, criar_thread_id
+from metricas_modelo import medir_chamada_modelo
 
 ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT / ".env")
@@ -307,16 +308,25 @@ def classificar_texto(
             timeout=30,
             max_retries=1,
         )
-        resposta = cliente.chat.completions.create(
-            model=MODEL,
-            messages=[
-                {"role": "system", "content": criar_instrucoes_sistema(opcoes)},
-                {"role": "user", "content": criar_prompt(texto, personalizadas)},
-            ],
-            temperature=0,
-            max_tokens=512,
-            response_format=cast(Any, formato_categoria(opcoes)),
-            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        mensagens_modelo = [
+            {"role": "system", "content": criar_instrucoes_sistema(opcoes)},
+            {"role": "user", "content": criar_prompt(texto, personalizadas)},
+        ]
+        formato = formato_categoria(opcoes)
+        resposta = medir_chamada_modelo(
+            lambda: cliente.chat.completions.create(
+                model=MODEL,
+                messages=cast(Any, mensagens_modelo),
+                temperature=0,
+                max_tokens=512,
+                response_format=cast(Any, formato),
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+            ),
+            modelo=MODEL,
+            etapa="classificacao",
+            origem=origem,
+            request_id=request_id,
+            registar=log_event,
         )
     except OpenAIError as exc:
         log_event(
@@ -422,7 +432,11 @@ def criar_nota(
         raise HTTPException(status_code=exc.status, detail=exc.mensagem) from exc
     quando = None
     if categoria == "agenda":
-        resultado_agenda = extrair_evento_agenda(texto)
+        resultado_agenda = extrair_evento_agenda(
+            texto,
+            request_id=request.state.request_id,
+            registar_metricas=log_event,
+        )
         quando = resultado_agenda.quando
         if resultado_agenda.estado not in {"ok", "sem_data"}:
             log_event(
@@ -572,14 +586,21 @@ def chamar_modelo_agente(
             timeout=30,
             max_retries=1,
         )
-        resposta = cliente.chat.completions.create(
-            model=MODEL,
-            messages=mensagens,
-            tools=FERRAMENTAS_AGENTE,
-            tool_choice="auto",
-            temperature=0,
-            max_tokens=512,
-            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        resposta = medir_chamada_modelo(
+            lambda: cliente.chat.completions.create(
+                model=MODEL,
+                messages=mensagens,
+                tools=FERRAMENTAS_AGENTE,
+                tool_choice="auto",
+                temperature=0,
+                max_tokens=512,
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+            ),
+            modelo=MODEL,
+            etapa="agente",
+            origem="http",
+            request_id=request_id,
+            registar=log_event,
         )
     except OpenAIError as exc:
         log_event(
