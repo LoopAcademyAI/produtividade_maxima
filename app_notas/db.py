@@ -42,6 +42,20 @@ INDICE_PROPOSTAS = (
     "CREATE INDEX IF NOT EXISTS propostas_utilizador_estado "
     "ON propostas_categoria (utilizador, estado, criada_em)"
 )
+ESQUEMA_RESUMOS_DIARIOS = """
+CREATE TABLE IF NOT EXISTS resumos_diarios (
+    id TEXT PRIMARY KEY,
+    utilizador TEXT NOT NULL,
+    dia TEXT NOT NULL,
+    resumo TEXT NOT NULL,
+    total_notas INTEGER NOT NULL,
+    criada_em TEXT NOT NULL,
+    UNIQUE (utilizador, dia)
+)"""
+INDICE_RESUMOS_DIARIOS = (
+    "CREATE INDEX IF NOT EXISTS resumos_diarios_utilizador_dia "
+    "ON resumos_diarios (utilizador, dia DESC)"
+)
 
 
 def url_postgres():
@@ -70,6 +84,8 @@ def ligacao():
         cur.execute(INDICE)
         cur.execute(ESQUEMA_PROPOSTAS)
         cur.execute(INDICE_PROPOSTAS)
+        cur.execute(ESQUEMA_RESUMOS_DIARIOS)
+        cur.execute(INDICE_RESUMOS_DIARIOS)
         if url:
             cur.execute("ALTER TABLE notas ADD COLUMN IF NOT EXISTS quando TEXT")
         else:
@@ -352,3 +368,62 @@ def rejeitar_proposta_categoria(utilizador, proposta_id):
             (agora, proposta_id, utilizador),
         )
         return "rejeitada" if atualizada.rowcount == 1 else "ja_resolvida"
+
+
+def utilizadores_com_notas(desde, antes_de):
+    with ligacao() as sql:
+        rows = sql(
+            "SELECT DISTINCT utilizador FROM notas "
+            "WHERE criada_em >= ? AND criada_em < ? ORDER BY utilizador",
+            (desde, antes_de),
+        ).fetchall()
+    return [
+        row["utilizador"] if isinstance(row, sqlite3.Row) else row[0] for row in rows
+    ]
+
+
+def resumo_diario_existe(utilizador, dia):
+    with ligacao() as sql:
+        return (
+            sql(
+                "SELECT 1 FROM resumos_diarios WHERE utilizador = ? AND dia = ?",
+                (utilizador, dia),
+            ).fetchone()
+            is not None
+        )
+
+
+def guardar_resumo_diario(utilizador, dia, resumo, total_notas):
+    with ligacao() as sql:
+        inserido = sql(
+            "INSERT INTO resumos_diarios "
+            "(id, utilizador, dia, resumo, total_notas, criada_em) "
+            "VALUES (?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT (utilizador, dia) DO NOTHING",
+            (
+                str(uuid.uuid4()),
+                utilizador,
+                dia,
+                resumo,
+                total_notas,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+        return inserido.rowcount == 1
+
+
+def obter_resumo_diario(utilizador):
+    with ligacao() as sql:
+        row = sql(
+            "SELECT dia, resumo, total_notas, criada_em FROM resumos_diarios "
+            "WHERE utilizador = ? ORDER BY dia DESC LIMIT 1",
+            (utilizador,),
+        ).fetchone()
+    if not row:
+        return None
+    keys = ("dia", "resumo", "total_notas", "criada_em")
+    return (
+        {key: row[key] for key in keys}
+        if isinstance(row, sqlite3.Row)
+        else dict(zip(keys, row))
+    )
