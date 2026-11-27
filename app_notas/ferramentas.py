@@ -5,7 +5,9 @@ utilizador é feito na própria consulta SQL, por isso nenhuma ferramenta vê no
 """
 
 import json
-from datetime import date, timedelta
+import re
+import unicodedata
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 
 import categorias
@@ -14,6 +16,12 @@ import db
 CATEGORIAS = categorias.BASE
 LIMITE_RESULTADOS = 50
 CAMPOS = ("id", "texto", "categoria", "criada_em")
+CATEGORIAS_REVISAO = ("tarefa", "agenda", "preocupações")
+SECCOES_REVISAO = {
+    "tarefa": "Tarefas",
+    "agenda": "Agenda",
+    "preocupações": "Preocupações",
+}
 
 
 class ErroFerramenta(ValueError):
@@ -101,6 +109,55 @@ def procurar_notas(
     if not isinstance(texto, str) or not texto.strip():
         raise ErroFerramenta("Falta o texto a procurar.")
     return _consultar(utilizador, categoria, texto.strip(), desde, ate)
+
+
+def pedido_revisao_semanal(mensagem: str) -> bool:
+    normalizada = unicodedata.normalize("NFD", mensagem.casefold())
+    normalizada = "".join(
+        caracter for caracter in normalizada if unicodedata.category(caracter) != "Mn"
+    )
+    return bool(re.search(r"\brevis(?:ao|oes)\b.*\bseman(?:a|al)\b", normalizada))
+
+
+def gerar_revisao_semanal(utilizador: str, hoje: date | None = None) -> dict[str, Any]:
+    """Gera uma revisão determinística das notas criadas esta semana em UTC."""
+    utilizador = _validar_utilizador(utilizador)
+    hoje = hoje or datetime.now(timezone.utc).date()
+    inicio = hoje - timedelta(days=hoje.weekday())
+    fim = inicio + timedelta(days=7)
+    seccoes = {
+        categoria: db.listar(
+            utilizador,
+            categoria=categoria,
+            desde=inicio.isoformat(),
+            antes_de=fim.isoformat(),
+        )
+        for categoria in CATEGORIAS_REVISAO
+    }
+
+    linhas = []
+    if not any(seccoes.values()):
+        linhas.append("Não encontrei notas tuas nesta semana.")
+        linhas.append("")
+
+    for categoria, titulo in SECCOES_REVISAO.items():
+        linhas.append(titulo)
+        notas = seccoes[categoria]
+        if notas:
+            for nota in notas:
+                id_citado = json.dumps(str(nota["id"]), ensure_ascii=False)
+                texto = " ".join(str(nota["texto"]).split())
+                linhas.append(f"- ID {id_citado}: {texto}")
+        else:
+            linhas.append(f"Sem {titulo.lower()} nesta semana.")
+        linhas.append("")
+
+    return {
+        "resposta": "\n".join(linhas).strip(),
+        "seccoes": seccoes,
+        "inicio": inicio.isoformat(),
+        "fim_exclusivo": fim.isoformat(),
+    }
 
 
 def propor_alteracoes_categoria(
